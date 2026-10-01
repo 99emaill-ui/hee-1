@@ -30,12 +30,46 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
   overallStartTime,
   overallEndTime,
 }) => {
-  const startM = parseMinutes(overallStartTime);
-  const endM = parseMinutes(overallEndTime);
+  const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
 
-  // Default to 30 mins after start time
-  const [currentMinutes, setCurrentMinutes] = useState<number>(startM + 30);
+  // Filter slots for the selected day
+  const daySlots = slots.filter((s) => s.day === selectedDay);
+
+  // Compute Day Start & Day End
+  const { dayStartM, dayEndM, dayStartTimeStr, dayEndTimeStr } = React.useMemo(() => {
+    if (daySlots.length === 0) {
+      return {
+        dayStartM: parseMinutes('09:00'),
+        dayEndM: parseMinutes('18:00'),
+        dayStartTimeStr: '09:00',
+        dayEndTimeStr: '18:00',
+      };
+    }
+    let minM = 24 * 60;
+    let maxM = 0;
+    daySlots.forEach((s) => {
+      const sStart = parseMinutes(s.prepStartTime || s.evalStartTime);
+      const sEnd = parseMinutes(s.videoEndTime || s.gradeEndTime || s.evalEndTime);
+      if (sStart < minM) minM = sStart;
+      if (sEnd > maxM) maxM = sEnd;
+    });
+    return {
+      dayStartM: minM,
+      dayEndM: maxM,
+      dayStartTimeStr: formatMinutes(minM),
+      dayEndTimeStr: formatMinutes(maxM),
+    };
+  }, [daySlots]);
+
+  // Current simulation clock in minutes
+  const [currentMinutes, setCurrentMinutes] = useState<number>(dayStartM);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+
+  // When day changes, reset time to that day's start
+  useEffect(() => {
+    setCurrentMinutes(dayStartM);
+    setIsPlaying(false);
+  }, [selectedDay, dayStartM]);
 
   // Play animation timer
   useEffect(() => {
@@ -43,16 +77,16 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
     if (isPlaying) {
       interval = setInterval(() => {
         setCurrentMinutes((prev) => {
-          if (prev >= endM) {
+          if (prev >= dayEndM) {
             setIsPlaying(false);
-            return startM;
+            return dayStartM;
           }
           return prev + 1; // 1 minute per tick
         });
       }, 500); // 500ms per simulated minute
     }
     return () => clearInterval(interval);
-  }, [isPlaying, startM, endM]);
+  }, [isPlaying, dayStartM, dayEndM]);
 
   const currentTimeStr = formatMinutes(currentMinutes);
 
@@ -61,12 +95,13 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
     const hours = now.getHours();
     const mins = now.getMinutes();
     const total = hours * 60 + mins;
-    setCurrentMinutes(Math.min(Math.max(total, startM), endM));
+    setCurrentMinutes(Math.min(Math.max(total, dayStartM), dayEndM));
     setIsPlaying(false);
   };
 
-  // Check lunch
+  // Check lunch (only on day 1 if relevant)
   const isLunch = (() => {
+    if (selectedDay !== 1) return false;
     if (!config.hasLunch || config.lunchDurationMinutes <= 0) return false;
     const lStart = parseMinutes(config.lunchStartTime);
     const lEnd = lStart + config.lunchDurationMinutes;
@@ -76,14 +111,14 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
   // Figure out who is doing what right now:
   // 1. In evaluation rooms
   const roomStatus = rooms.map((room) => {
-    const activeSlot = slots.find((s) => {
+    const activeSlot = daySlots.find((s) => {
       if (s.roomId !== room.id) return false;
       const evalS = parseMinutes(s.evalStartTime);
       const evalE = parseMinutes(s.evalEndTime);
       return currentMinutes >= evalS && currentMinutes < evalE;
     });
 
-    const gradingSlot = slots.find((s) => {
+    const gradingSlot = daySlots.find((s) => {
       if (s.roomId !== room.id) return false;
       const evalE = parseMinutes(s.evalEndTime);
       const gradeE = parseMinutes(s.gradeEndTime);
@@ -98,7 +133,7 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
   });
 
   // 2. Who is preparing in the prep room?
-  const preparingSlots = slots.filter((s) => {
+  const preparingSlots = daySlots.filter((s) => {
     if (!s.prepStartTime || !s.prepEndTime) return false;
     const pS = parseMinutes(s.prepStartTime);
     const pE = parseMinutes(s.prepEndTime);
@@ -106,7 +141,7 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
   });
 
   // 3. Who is watching videos in 456 room?
-  const videoWatchingSlots = slots.filter((s) => {
+  const videoWatchingSlots = daySlots.filter((s) => {
     if (!s.videoStartTime || !s.videoEndTime) return false;
     const vS = parseMinutes(s.videoStartTime);
     const vE = parseMinutes(s.videoEndTime);
@@ -128,7 +163,7 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
   });
 
   // Common slots
-  const activeCommonSlot = slots.find((s) => {
+  const activeCommonSlot = daySlots.find((s) => {
     if (s.exerciseType !== 'COMMON_ALL') return false;
     const sStart = parseMinutes(s.evalStartTime);
     const sEnd = parseMinutes(s.evalEndTime);
@@ -156,7 +191,33 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Day selector */}
+            <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs font-bold mr-1">
+              <button
+                type="button"
+                onClick={() => setSelectedDay(1)}
+                className={`px-3 py-1 rounded-md transition-colors ${
+                  selectedDay === 1
+                    ? 'bg-red-600 text-white shadow-2xs'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                1일차 (PT 10:00 / RP 14:30)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDay(2)}
+                className={`px-3 py-1 rounded-md transition-colors ${
+                  selectedDay === 2
+                    ? 'bg-red-600 text-white shadow-2xs'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                2일차 (IB 09:30)
+              </button>
+            </div>
+
             <button
               onClick={() => setIsPlaying(!isPlaying)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
@@ -177,7 +238,7 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
             </button>
 
             <button
-              onClick={() => setCurrentMinutes(startM)}
+              onClick={() => setCurrentMinutes(dayStartM)}
               className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg"
               title="시작 시각으로 리셋"
             >
@@ -189,20 +250,24 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
         {/* Time Slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-slate-400">{overallStartTime}</span>
+            <span className="text-xs font-mono text-slate-400">
+              {selectedDay}일차 시작: {dayStartTimeStr}
+            </span>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">기준 시각:</span>
               <span className="text-2xl font-black font-mono text-amber-400">
                 {currentTimeStr}
               </span>
             </div>
-            <span className="text-xs font-mono text-slate-400">{overallEndTime}</span>
+            <span className="text-xs font-mono text-slate-400">
+              {selectedDay}일차 종료: {dayEndTimeStr}
+            </span>
           </div>
 
           <input
             type="range"
-            min={startM}
-            max={endM}
+            min={dayStartM}
+            max={dayEndM}
             value={currentMinutes}
             onChange={(e) => {
               setCurrentMinutes(Number(e.target.value));

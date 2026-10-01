@@ -4,8 +4,13 @@
 
 export function parseMinutes(timeStr: string): number {
   if (!timeStr) return 0;
+  // If string contains multiple times or prefix text like "1일차 17:40", find first or match HH:mm
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  }
   const [h, m] = timeStr.split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
+  return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
 }
 
 export function formatMinutes(totalMinutes: number): string {

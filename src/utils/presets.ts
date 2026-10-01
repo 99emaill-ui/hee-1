@@ -11,20 +11,27 @@ export interface PresetConfig {
   candidates: Candidate[];
 }
 
-const today = new Date().toISOString().split('T')[0];
+const d1 = new Date();
+const d2 = new Date();
+d2.setDate(d1.getDate() + 1);
+const todayStr = d1.toISOString().split('T')[0];
+const tomorrowStr = d2.toISOString().split('T')[0];
 
 export const PRESETS: PresetConfig[] = [
   {
     id: 'grade4-4candidates-5rooms',
-    name: '2026년도 4급 보직후보자 역량평가 실습표 (4인 5개 강의실 표준)',
+    name: '2026년도 4급 보직후보자 역량평가 실습표 (1일차 PT·RP / 2일차 IB)',
     category: '4급 4인 전용 (5실)',
-    description: '455실(1번 검토/실습실), 457실(2번), 458실(3번), 459실(4번 검토) 분산 검토 + 456실 실습영상 시청실 (PT: 30분/20분, IB: 50분/50분, RP: 30분/30분)',
+    description: '1일차: 오전 10:00 PT실습 ➔ 오후 14:30 RP실습 / 2일차: 오전 09:30 IB실습 (각 과목 4명 연속 실시, 실습종료 10분후 다음실습 시작)',
     config: {
       title: '2026년도 4급 보직후보자 역량평가 실습표',
-      startDate: today,
-      endDate: today,
-      startTime: '09:20', // 1번 교육생 과제검토 시작
-      evalStartTime: '10:00', // 455실습실 1번 실습 시작 기준 (10:00 실습 시작 시 09:50 검토 종료)
+      startDate: todayStr,
+      endDate: tomorrowStr,
+      startTime: '09:20', // 1일차 1번 교육생 첫 과제검토 시작
+      evalStartTime: '10:00', // 1일차 PT 실습 시작 기준
+      day1PtStartTime: '10:00', // 1일차 오전 PT 1번 실습 시작
+      day1RpStartTime: '14:30', // 1일차 오후 RP 1번 실습 시작
+      day2IbStartTime: '09:30', // 2일차 오전 IB 1번 실습 시작
       useEvalStartTimeAsBase: true,
       evalRoomName: '455강의실 (역량평가 실습실)',
       videoRoomName: '456강의실 (실습영상 시청실)',
@@ -49,6 +56,9 @@ export const PRESETS: PresetConfig[] = [
         code: 'PT',
         name: '개별발표 (PT / Oral Presentation)',
         type: 'INDIVIDUAL',
+        day: 1,
+        sessionPeriod: 'AM',
+        customEvalStartTime: '10:00',
         prepMinutes: 30, // PT 과제검토 30분
         evalMinutes: 20, // PT 평가실습 20분
         gradeMinutes: 10,
@@ -56,25 +66,31 @@ export const PRESETS: PresetConfig[] = [
         enabled: true,
       },
       {
-        id: 'ex-ib',
-        code: 'IB',
-        name: '서류함기법 (IB / In-Basket)',
-        type: 'INDIVIDUAL',
-        prepMinutes: 50, // IB 과제검토 50분
-        evalMinutes: 50, // IB 평가실습 50분 (요청사항: IB만 평가실습 시간 50분)
-        gradeMinutes: 10,
-        color: 'indigo',
-        enabled: true,
-      },
-      {
         id: 'ex-rp',
         code: 'RP',
         name: '1:1 역할수행 (RP / Role-Play)',
         type: 'INDIVIDUAL',
+        day: 1,
+        sessionPeriod: 'PM',
+        customEvalStartTime: '14:30',
         prepMinutes: 30, // RP 과제검토 30분
-        evalMinutes: 30, // RP 평가실습 30분 (요청사항: RP도 평가실습 시간 30분)
+        evalMinutes: 30, // RP 평가실습 30분
         gradeMinutes: 10,
-        color: 'emerald',
+        color: 'rose',
+        enabled: true,
+      },
+      {
+        id: 'ex-ib',
+        code: 'IB',
+        name: '서류함기법 (IB / In-Basket)',
+        type: 'INDIVIDUAL',
+        day: 2,
+        sessionPeriod: 'AM',
+        customEvalStartTime: '09:30',
+        prepMinutes: 50, // IB 과제검토 50분
+        evalMinutes: 50, // IB 평가실습 50분
+        gradeMinutes: 10,
+        color: 'amber',
         enabled: true,
       },
     ],
@@ -122,13 +138,16 @@ export const PRESETS: PresetConfig[] = [
     id: 'grade4-3candidates',
     name: '2026년도 4급 보직후보자 역량평가 실습표 (3인 집중형)',
     category: '4급 3인 전용',
-    description: '455실(1번 검토/실습), 457실(2번 검토), 458실(3번 검토) + 456실(실습영상 시청)',
+    description: '1일차: 오전 10:00 PT / 오후 14:30 RP, 2일차: 오전 09:30 IB (3인 연속 실시)',
     config: {
       title: '2026년도 4급 보직후보자 역량평가 실습표 (3인)',
-      startDate: today,
-      endDate: today,
+      startDate: todayStr,
+      endDate: tomorrowStr,
       startTime: '09:20',
       evalStartTime: '10:00',
+      day1PtStartTime: '10:00',
+      day1RpStartTime: '14:30',
+      day2IbStartTime: '09:30',
       useEvalStartTimeAsBase: true,
       evalRoomName: '455강의실 (역량평가 실습실)',
       videoRoomName: '456강의실 (실습영상 시청실)',
@@ -152,6 +171,9 @@ export const PRESETS: PresetConfig[] = [
         code: 'PT',
         name: '개별발표 (PT)',
         type: 'INDIVIDUAL',
+        day: 1,
+        sessionPeriod: 'AM',
+        customEvalStartTime: '10:00',
         prepMinutes: 30,
         evalMinutes: 20,
         gradeMinutes: 10,
@@ -159,25 +181,31 @@ export const PRESETS: PresetConfig[] = [
         enabled: true,
       },
       {
-        id: 'ex-ib',
-        code: 'IB',
-        name: '서류함기법 (IB)',
-        type: 'INDIVIDUAL',
-        prepMinutes: 50,
-        evalMinutes: 50,
-        gradeMinutes: 10,
-        color: 'indigo',
-        enabled: true,
-      },
-      {
         id: 'ex-rp',
         code: 'RP',
         name: '1:1 역할수행 (RP)',
         type: 'INDIVIDUAL',
+        day: 1,
+        sessionPeriod: 'PM',
+        customEvalStartTime: '14:30',
         prepMinutes: 30,
         evalMinutes: 30,
         gradeMinutes: 10,
-        color: 'emerald',
+        color: 'rose',
+        enabled: true,
+      },
+      {
+        id: 'ex-ib',
+        code: 'IB',
+        name: '서류함기법 (IB)',
+        type: 'INDIVIDUAL',
+        day: 2,
+        sessionPeriod: 'AM',
+        customEvalStartTime: '09:30',
+        prepMinutes: 50,
+        evalMinutes: 50,
+        gradeMinutes: 10,
+        color: 'amber',
         enabled: true,
       },
     ],

@@ -24,11 +24,11 @@ export function exportToExcel(
   const masterData: (string | number)[][] = [
     ['역량평가 종합 로테이션 타임테이블'],
     ['과정명', config.title],
-    ['운영일자', dateStr, '455실습 시작', config.evalStartTime || '10:00', '종료예상', schedule.overallEndTime],
-    ['실습실', '455강의실 (역량평가 실습실)', '영상시청실', '456강의실 (실습영상 시청)'],
-    ['검토실', '455실(1번), 457실(2번), 458실(3번), 459실(4번)'],
+    ['운영일자', dateStr, '1일차 PT시작', config.day1PtStartTime || '10:00', '1일차 RP시작', config.day1RpStartTime || '14:30', '2일차 IB시작', config.day2IbStartTime || '09:30'],
+    ['실습실', '455강의실 (역량평가 본 실습실)', '영상시청실', '456강의실 (실습영상 시청)'],
+    ['검토실', '455실(1번), 457실(2번), 458실(3번), 459실(4번) (실습종료 10분후 다음실습)'],
     [],
-    ['순번', '과제검토 (시간 및 검토실)', '과제숙지 후 대기 (10분)', '역량평가 실습 (455실)', '실습영상 시청 (456실)', '과목', '수험번호', '피평가자 성명', '소속/직급', '평가위원'],
+    ['일차/구분', '순번', '과제검토 (시간 및 검토실)', '과제숙지 후 대기 (10분)', '역량평가 실습 (455실)', '실습영상 시청 (456실)', '과목', '수험번호', '피평가자 성명', '소속/직급', '평가위원'],
   ];
 
   schedule.slots.forEach((s) => {
@@ -45,6 +45,7 @@ export function exportToExcel(
       .join(', ');
 
     masterData.push([
+      `${s.day}일차 ${s.sessionPeriod}`,
       `${s.round}회`,
       prepStr,
       transitStr,
@@ -114,13 +115,13 @@ export function exportToCsv(
 ) {
   const dateStr = config.startDate === config.endDate ? config.startDate : `${config.startDate}~${config.endDate}`;
   let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility in Korea
-  csvContent += '순번,과제검토,이동대기(10분),역량평가실습(455실),실습영상시청(456실),과목,실습실,수험번호,피평가자명\n';
+  csvContent += '일차/구분,순번,과제검토,이동대기(10분),역량평가실습(455실),실습영상시청(456실),과목,실습실,수험번호,피평가자명\n';
 
   schedule.slots.forEach((s) => {
     const prepStr = s.prepStartTime ? `[${s.prepRoomName || '검토실'}] ${s.prepStartTime}~${s.prepEndTime}` : '-';
     const transitStr = s.transitStartTime ? `${s.transitStartTime}~${s.transitEndTime}` : '-';
     const videoStr = s.videoStartTime ? `[456실] ${s.videoStartTime}~${s.videoEndTime}` : '-';
-    csvContent += `${s.round}회,"${prepStr}","${transitStr}","${s.evalStartTime}~${s.evalEndTime}","${videoStr}","${s.exerciseName}","${s.roomName}","${s.candidateCodes.join(', ')}","${s.candidateNames.join(', ')}"\n`;
+    csvContent += `"${s.day}일차 ${s.sessionPeriod}",${s.round}회,"${prepStr}","${transitStr}","${s.evalStartTime}~${s.evalEndTime}","${videoStr}","${s.exerciseName}","${s.roomName}","${s.candidateCodes.join(', ')}","${s.candidateNames.join(', ')}"\n`;
   });
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -215,6 +216,7 @@ export function exportToStandaloneHtml(
         <table class="w-full text-left text-sm">
           <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
             <tr>
+              <th class="p-3">일차/구분</th>
               <th class="p-3">순번</th>
               <th class="p-3">과제검토 (분산 강의실)</th>
               <th class="p-3">과제숙지 후 대기</th>
@@ -230,6 +232,7 @@ export function exportToStandaloneHtml(
               .map((s) => {
                 return `
                 <tr class="hover:bg-slate-50">
+                  <td class="p-3 font-bold text-red-700 text-xs">${s.day}일차 ${s.sessionPeriod}</td>
                   <td class="p-3 font-semibold text-slate-700">${s.round}회</td>
                   <td class="p-3">
                     <span class="font-bold text-red-800">[${s.prepRoomName || '검토실'}]</span>

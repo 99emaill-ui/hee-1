@@ -14,9 +14,14 @@ export const AssessorSheetView: React.FC<AssessorSheetViewProps> = ({
   candidates,
 }) => {
   const [selectedRoomId, setSelectedRoomId] = useState<string>(rooms[0]?.id || '');
+  const [selectedDay, setSelectedDay] = useState<'ALL' | 1 | 2>('ALL');
 
   const activeRoom = rooms.find((r) => r.id === selectedRoomId) || rooms[0];
-  const roomSlots = slots.filter((s) => s.roomId === activeRoom?.id);
+  const roomSlots = slots.filter((s) => {
+    const matchesRoom = s.roomId === activeRoom?.id;
+    const matchesDay = selectedDay === 'ALL' || s.day === selectedDay;
+    return matchesRoom && matchesDay;
+  });
 
   return (
     <div className="space-y-6">
@@ -32,8 +37,42 @@ export const AssessorSheetView: React.FC<AssessorSheetViewProps> = ({
           </p>
         </div>
 
-        {/* Room Tab Selector */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* Room Tab & Day Filter Selector */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Day Filter */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-bold">
+            <button
+              onClick={() => setSelectedDay('ALL')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                selectedDay === 'ALL'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              전체
+            </button>
+            <button
+              onClick={() => setSelectedDay(1)}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                selectedDay === 1
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              1일차 (PT·RP)
+            </button>
+            <button
+              onClick={() => setSelectedDay(2)}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                selectedDay === 2
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              2일차 (IB)
+            </button>
+          </div>
+
           {rooms.map((room) => (
             <button
               key={room.id}
@@ -97,7 +136,9 @@ export const AssessorSheetView: React.FC<AssessorSheetViewProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  roomSlots.map((s) => {
+                  roomSlots.map((s, idx) => {
+                    const prevSlot = roomSlots[idx - 1];
+                    const isNewSession = !prevSlot || prevSlot.exerciseCode !== s.exerciseCode || prevSlot.day !== s.day;
                     const candCodes = s.candidateCodes.join(', ');
                     const candNames = s.candidateNames.join(', ');
                     const candDepts = s.candidateIds
@@ -105,43 +146,64 @@ export const AssessorSheetView: React.FC<AssessorSheetViewProps> = ({
                       .join(', ');
 
                     return (
-                      <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="p-3 text-center font-bold text-slate-700">
-                          {s.round}차
-                        </td>
-                        <td className="p-3 font-mono font-bold text-slate-900 text-xs">
-                          {s.evalStartTime} ~ {s.evalEndTime}
-                        </td>
-                        <td className="p-3 font-mono text-slate-500 text-xs">
-                          ~ {s.gradeEndTime}
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="font-mono font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                            {candCodes}
-                          </span>
-                        </td>
-                        <td className="p-3 font-bold text-slate-900">
-                          {candNames}
-                        </td>
-                        <td className="p-3 text-slate-600">
-                          {candDepts}
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3">
-                          <div className="h-6 border-b border-dotted border-slate-300"></div>
-                        </td>
-                      </tr>
+                      <React.Fragment key={s.id}>
+                        {isNewSession && (
+                          <tr className="bg-slate-800 text-white font-bold">
+                            <td colSpan={9} className="px-4 py-2 text-xs">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[11px] font-black">
+                                    {s.day}일차 {s.sessionPeriod}
+                                  </span>
+                                  <span className="text-amber-300 font-extrabold text-xs">
+                                    {s.exerciseName}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-slate-300">
+                                  1번 실습: {s.evalStartTime} 시작 / 4명 연속 실시 (실습종료 10분후 다음실습)
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        <tr className="hover:bg-slate-50">
+                          <td className="p-3 text-center font-bold text-slate-700">
+                            {s.round}차
+                          </td>
+                          <td className="p-3 font-mono font-bold text-slate-900 text-xs">
+                            {s.evalStartTime} ~ {s.evalEndTime}
+                          </td>
+                          <td className="p-3 font-mono text-slate-500 text-xs">
+                            ~ {s.gradeEndTime}
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="font-mono font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                              {candCodes}
+                            </span>
+                          </td>
+                          <td className="p-3 font-bold text-slate-900">
+                            {candNames}
+                          </td>
+                          <td className="p-3 text-slate-600">
+                            {candDepts}
+                          </td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                            />
+                          </td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="h-6 border-b border-dotted border-slate-300"></div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     );
                   })
                 )}

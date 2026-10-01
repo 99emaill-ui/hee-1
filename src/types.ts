@@ -10,6 +10,9 @@ export interface Exercise {
   gradeMinutes: number; // 평정 및 채점/정리시간 (분)
   color: string; // Tailwind color theme identifier
   enabled: boolean;
+  day?: number; // 1 (1일차) or 2 (2일차)
+  sessionPeriod?: 'AM' | 'PM'; // '오전' | '오후'
+  customEvalStartTime?: string; // e.g. "10:00", "14:30", "09:30"
   groupSize?: number; // 집단과목(GD)일 때 1개 조 인원 (예: 4~6명)
 }
 
@@ -37,6 +40,9 @@ export interface GeneralConfig {
   endDate: string; // 운영 종료일자 YYYY-MM-DD
   startTime: string; // 전체 시작시간 "09:00"
   evalStartTime: string; // 455강의실 1번 교육생 실습 시작 기준시간 "10:00"
+  day1PtStartTime?: string; // 1일차 오전 PT 시작시간 (기본 "10:00")
+  day1RpStartTime?: string; // 1일차 오후 RP 시작시간 (기본 "14:30")
+  day2IbStartTime?: string; // 2일차 오전 IB 시작시간 (기본 "09:30")
   useEvalStartTimeAsBase: boolean; // 455실습실 시간 기준 역산 모드 활성화 여부
   evalRoomName: string; // 메인 역량평가 실습실 (예: 455강의실)
   videoRoomName: string; // 실습영상 시청실 (예: 456강의실)
@@ -53,6 +59,9 @@ export interface GeneralConfig {
 
 export interface TimetableSlot {
   id: string;
+  day: number; // 1 (1일차) or 2 (2일차)
+  date?: string; // YYYY-MM-DD
+  sessionPeriod?: string; // '오전' | '오후'
   exerciseId: string;
   exerciseCode: string;
   exerciseName: string;
@@ -79,6 +88,8 @@ export interface TimetableSlot {
 }
 
 export interface CandidateTimelineItem {
+  day: number; // 1일차 or 2일차
+  date?: string; // YYYY-MM-DD
   timeStr: string; // "09:00 ~ 09:30"
   location: string; // "455강의실", "456강의실", "457강의실", "458강의실", "459강의실"
   activity: string; // "과제검토", "과제숙지 후 이동/대기", "역량평가 실습", "실습영상 시청"

@@ -87,54 +87,76 @@ export const CandidateTimelineView: React.FC<CandidateTimelineViewProps> = ({
               <span className="text-[11px] text-slate-400 font-medium">수험생 동선표</span>
             </div>
 
-            {/* Timeline Steps */}
-            <div className="space-y-2.5">
+            {/* Timeline Steps Grouped by Day */}
+            <div className="space-y-4">
               {items.length === 0 ? (
                 <div className="text-xs text-slate-400 p-4 text-center">
                   배정된 일정이 없습니다.
                 </div>
               ) : (
-                items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="font-mono text-xs font-bold text-slate-900">
-                        {item.timeStr}
-                      </span>
-                    </div>
+                [1, 2].map((dayNum) => {
+                  const dayItems = items.filter((it) => it.day === dayNum);
+                  if (dayItems.length === 0) return null;
+                  const dayDate = dayItems[0]?.date;
 
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded border uppercase ${getActivityBadge(
-                          item.type
-                        )}`}
-                      >
-                        {item.type === 'PREP'
-                          ? '과제검토'
-                          : item.type === 'TRANSIT'
-                          ? '이동·대기'
-                          : item.type === 'EVAL'
-                          ? '본실습'
-                          : item.type === 'VIDEO'
-                          ? '영상시청'
-                          : item.type === 'LUNCH'
-                          ? '중식'
-                          : '진행'}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-800">
-                        {item.exerciseName}
-                      </span>
-                    </div>
+                  return (
+                    <div key={dayNum} className="space-y-2">
+                      <div className="flex items-center justify-between px-2 py-1 bg-slate-100 rounded-md border border-slate-200">
+                        <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-red-600 inline-block"></span>
+                          {dayNum}일차 {dayDate ? `(${dayDate})` : ''}
+                        </span>
+                        <span className="text-[11px] font-bold text-red-700">
+                          {dayNum === 1 ? '오전 PT(발표) + 오후 RP(역할수행)' : '오전 IB(서류함기법)'}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                      <span className="font-medium">{item.location}</span>
+                      <div className="space-y-1.5 pl-1">
+                        {dayItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="font-mono text-xs font-bold text-slate-900">
+                                {item.timeStr}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded border uppercase ${getActivityBadge(
+                                  item.type
+                                )}`}
+                              >
+                                {item.type === 'PREP'
+                                  ? '과제검토'
+                                  : item.type === 'TRANSIT'
+                                  ? '이동·대기'
+                                  : item.type === 'EVAL'
+                                  ? '본실습'
+                                  : item.type === 'VIDEO'
+                                  ? '영상시청'
+                                  : item.type === 'LUNCH'
+                                  ? '중식'
+                                  : '진행'}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-800">
+                                {item.exerciseName}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="font-medium">{item.location}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

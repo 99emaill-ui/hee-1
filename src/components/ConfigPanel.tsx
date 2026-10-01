@@ -313,56 +313,111 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   </div>
                 </div>
 
-                {/* 455 Base Time Setting - Core user requirement */}
-                <div className="p-4 bg-amber-50/70 border border-amber-300 rounded-xl space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-amber-700" />
-                      <div>
-                        <span className="font-extrabold text-slate-900 text-sm block">
-                          455강의실 실습 시작 기준시간 설정 (과제검토 시간 자동 역산)
-                        </span>
-                        <span className="text-xs text-amber-900">
-                          1번 교육생의 455실 실습 시작시간을 입력하면, 10분 전 과제검토 종료 및 과제검토 시작시간이 자동 계산됩니다.
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-amber-300 shadow-2xs">
-                      <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                        455실 실습 시작:
+                {/* 1일차 / 2일차 실습 시작시간 설정 - 핵심 운영 설정 */}
+                <div className="p-4 bg-amber-50/70 border border-amber-300 rounded-xl space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-700" />
+                    <div>
+                      <span className="font-extrabold text-slate-900 text-sm block">
+                        1일차 / 2일차 평가과목별 1번 교육생 실습 시작시간 설정
                       </span>
-                      <input
-                        type="time"
-                        value={config.evalStartTime || '10:00'}
-                        onChange={(e) =>
-                          onChangeConfig({
-                            ...config,
-                            evalStartTime: e.target.value,
-                            useEvalStartTimeAsBase: true,
-                          })
-                        }
-                        className="text-sm font-black text-red-900 border border-slate-300 rounded-md px-2.5 py-1 focus:ring-2 focus:ring-red-500"
-                      />
+                      <span className="text-xs text-amber-900">
+                        각 세션별 1번 실습 시작시간을 기준으로 과제검토 시간 및 4명 연속 실습(실습종료 10분후 다음실습)이 자동 연동됩니다.
+                      </span>
                     </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-600 bg-white/70 p-2 rounded-md border border-amber-200">
-                    💡 <strong>순차 진행 예시:</strong> 1번 실습 시작 <strong>{config.evalStartTime || '10:00'}</strong> 설정 시 ➔
-                    1번 과제검토는 <strong>{(() => {
-                      const [h, m] = (config.evalStartTime || '10:00').split(':').map(Number);
-                      const total = h * 60 + m - (config.transitMinutes || 10) - (exercises[0]?.prepMinutes || 30);
-                      const rh = Math.floor(total / 60) % 24;
-                      const rm = total % 60;
-                      return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
-                    })()}</strong> ~ <strong>{(() => {
-                      const [h, m] = (config.evalStartTime || '10:00').split(':').map(Number);
-                      const total = h * 60 + m - (config.transitMinutes || 10);
-                      const rh = Math.floor(total / 60) % 24;
-                      const rm = total % 60;
-                      return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
-                    })()}</strong> (10분 대기 후 10:00 실습 시작),
-                    1번 실습 종료(10:20) <strong>10분 후인 10:30에 2번 실습이 시작</strong>되며, 이에 맞춰 2번의 과제검토(09:50~10:20)도 자동 세팅됩니다.
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    {/* 1일차 오전 PT */}
+                    <div className="bg-white p-3 rounded-lg border border-red-200 shadow-2xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                          1일차 오전
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-700">PT 실습 (4명)</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs font-semibold text-slate-600">실습 시작:</span>
+                        <input
+                          type="time"
+                          value={config.day1PtStartTime || '10:00'}
+                          onChange={(e) =>
+                            onChangeConfig({
+                              ...config,
+                              day1PtStartTime: e.target.value,
+                              evalStartTime: e.target.value,
+                            })
+                          }
+                          className="text-sm font-black text-red-900 border border-slate-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-red-500 font-mono"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">
+                        검토 30분 ➔ 대기 10분 ➔ 실습 20분
+                      </span>
+                    </div>
+
+                    {/* 1일차 오후 RP */}
+                    <div className="bg-white p-3 rounded-lg border border-rose-200 shadow-2xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                          1일차 오후
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-700">RP 실습 (4명)</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs font-semibold text-slate-600">실습 시작:</span>
+                        <input
+                          type="time"
+                          value={config.day1RpStartTime || '14:30'}
+                          onChange={(e) =>
+                            onChangeConfig({
+                              ...config,
+                              day1RpStartTime: e.target.value,
+                            })
+                          }
+                          className="text-sm font-black text-rose-900 border border-slate-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-rose-500 font-mono"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">
+                        검토 30분 ➔ 대기 10분 ➔ 실습 30분
+                      </span>
+                    </div>
+
+                    {/* 2일차 오전 IB */}
+                    <div className="bg-white p-3 rounded-lg border border-amber-200 shadow-2xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          2일차 오전
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-700">IB 실습 (4명)</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs font-semibold text-slate-600">실습 시작:</span>
+                        <input
+                          type="time"
+                          value={config.day2IbStartTime || '09:30'}
+                          onChange={(e) =>
+                            onChangeConfig({
+                              ...config,
+                              day2IbStartTime: e.target.value,
+                            })
+                          }
+                          className="text-sm font-black text-amber-900 border border-slate-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-amber-500 font-mono"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">
+                        검토 50분 ➔ 대기 10분 ➔ 실습 50분
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-600 bg-white/70 p-2.5 rounded-md border border-amber-200 space-y-1">
+                    <div>
+                      💡 <strong>1일차 진행:</strong> 오전 <strong>{config.day1PtStartTime || '10:00'}</strong> PT 실습 시작(4명 연속), 오후 <strong>{config.day1RpStartTime || '14:30'}</strong> RP 실습 시작(4명 연속)
+                    </div>
+                    <div>
+                      💡 <strong>2일차 진행:</strong> 오전 <strong>{config.day2IbStartTime || '09:30'}</strong> IB 실습 시작(4명 연속) ➔ 모든 과목은 <strong>앞 교육생 실습 종료 10분 후 다음 실습 시작</strong>됩니다.
+                    </div>
                   </div>
                 </div>
 
@@ -568,13 +623,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     onClick={() => {
                       const updated = exercises.map((e) => {
                         if (e.code === 'PT' || e.name.includes('발표') || e.name.includes('PT')) {
-                          return { ...e, prepMinutes: 30, evalMinutes: 20, enabled: true };
+                          return { ...e, prepMinutes: 30, evalMinutes: 20, day: 1, sessionPeriod: 'AM' as const, customEvalStartTime: '10:00', enabled: true };
                         }
                         if (e.code === 'RP' || e.name.includes('역할') || e.name.includes('RP')) {
-                          return { ...e, prepMinutes: 30, evalMinutes: 30, enabled: true };
+                          return { ...e, prepMinutes: 30, evalMinutes: 30, day: 1, sessionPeriod: 'PM' as const, customEvalStartTime: '14:30', enabled: true };
                         }
                         if (e.code === 'IB' || e.name.includes('서류함') || e.name.includes('IB')) {
-                          return { ...e, prepMinutes: 50, evalMinutes: 50, enabled: true };
+                          return { ...e, prepMinutes: 50, evalMinutes: 50, day: 2, sessionPeriod: 'AM' as const, customEvalStartTime: '09:30', enabled: true };
                         }
                         return e;
                       });
@@ -582,13 +637,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     }}
                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-md shadow-2xs whitespace-nowrap self-start sm:self-auto"
                   >
-                    최신 공식 소요시간 일괄 적용
+                    1일차(PT·RP) / 2일차(IB) 공식 기준 일괄 적용
                   </button>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">
-                    역량평가 과목별 준비시간, 평가시간, 채점시간을 개별 설정합니다.
+                    역량평가 과목별 일차(1일차/2일차), 준비시간, 평가시간, 채점시간을 개별 설정합니다.
                   </p>
                   <button
                     type="button"
@@ -632,6 +687,27 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                             className="w-48 sm:w-64 text-sm font-semibold border border-slate-300 rounded-md px-3 py-1.5"
                             placeholder="과목명"
                           />
+                        </div>
+
+                        {/* Day and Period selector */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500 font-medium">일차/시간:</span>
+                          <select
+                            value={ex.day || 1}
+                            onChange={(e) => handleUpdateExercise(ex.id, 'day', Number(e.target.value))}
+                            className="text-xs font-bold border border-slate-300 rounded-md px-2 py-1.5 bg-slate-50 text-slate-800"
+                          >
+                            <option value={1}>1일차</option>
+                            <option value={2}>2일차</option>
+                          </select>
+                          <select
+                            value={ex.sessionPeriod || 'AM'}
+                            onChange={(e) => handleUpdateExercise(ex.id, 'sessionPeriod', e.target.value)}
+                            className="text-xs font-bold border border-slate-300 rounded-md px-2 py-1.5 bg-slate-50 text-slate-800"
+                          >
+                            <option value="AM">오전</option>
+                            <option value="PM">오후</option>
+                          </select>
                         </div>
 
                         {/* Exercise Type */}

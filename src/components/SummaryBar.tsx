@@ -24,6 +24,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({
   roomCount,
   activeExerciseCount,
 }) => {
+  const isMultiDay = schedule.overallEndTime.includes('1일차') || schedule.overallEndTime.includes('/');
   const startM = parseMinutes(schedule.overallStartTime);
   const endM = parseMinutes(schedule.overallEndTime);
   const diffM = Math.max(0, endM - startM);
@@ -80,11 +81,17 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({
           </div>
           <div>
             <span className="text-[11px] font-semibold text-slate-500 block">예상 운영 시간</span>
-            <div className="text-sm font-black text-slate-900 leading-tight">
-              {schedule.overallStartTime} ~ {schedule.overallEndTime}
+            <div className="text-xs font-black text-slate-900 leading-tight">
+              {schedule.overallEndTime.includes('/') ? (
+                <div className="space-y-0.5">
+                  <span className="text-red-700 font-bold block">{schedule.overallEndTime}</span>
+                </div>
+              ) : (
+                <span>{schedule.overallStartTime} ~ {schedule.overallEndTime}</span>
+              )}
             </div>
             <span className="text-[10px] text-slate-500 font-medium">
-              (총 {hours}시간 {mins > 0 ? `${mins}분` : ''})
+              {isMultiDay ? '1일차(PT·RP) / 2일차(IB) 연계' : `총 ${hours}시간 ${mins > 0 ? `${mins}분` : ''}`}
             </span>
           </div>
         </div>
