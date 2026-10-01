@@ -69,12 +69,12 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">
                   역량평가 실습 순서표 자동 생성기
                 </h1>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
-                  K-AC Scheduler Pro
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
+                  {config.cohort ? `제${config.cohort}기` : '4급 보직후보자'}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                공공기관·기업 평가센터(Assessment Center) 로테이션 타임테이블 자동 최적화
+              <p className="text-xs text-slate-600 font-semibold truncate max-w-lg">
+                {config.title}
               </p>
             </div>
           </div>

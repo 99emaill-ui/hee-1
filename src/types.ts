@@ -35,7 +35,10 @@ export interface Candidate {
 }
 
 export interface GeneralConfig {
-  title: string; // 과정명
+  title: string; // 과정명 (예: 2026년도 4급 보직후보자 역량평가 실습표 (제1기))
+  baseTitle?: string; // 기본 과정명 (기수 제외, 예: 2026년도 4급 보직후보자 역량평가 실습표)
+  cohort?: number | string; // 기수 (예: 1, 2, 3...)
+  cohortName?: string; // 기수명 (예: "제1기")
   startDate: string; // 운영 시작일자 YYYY-MM-DD
   endDate: string; // 운영 종료일자 YYYY-MM-DD
   startTime: string; // 전체 시작시간 "09:00"

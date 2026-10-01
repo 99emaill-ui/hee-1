@@ -37,27 +37,28 @@ export function generateSchedule(
     };
   }
 
-  // Get classroom mapping for candidates (1->455, 2->457, 3->458, 4->459)
+  const evalRoomName = config.evalRoomName || rooms[0]?.name || '455강의실 (역량평가 실습실)';
+  const videoRoomName = config.videoRoomName || rooms[1]?.name || '456강의실 (실습영상 시청실)';
+
+  // Get classroom mapping for candidates (1->main room, 2->prep 2, 3->prep 3, 4->prep 4)
   const getPrepRoomForCandidate = (cand: Candidate, index: number): string => {
     if (cand.prepRoom) return cand.prepRoom;
     const num = index + 1;
     if (config.candidatePrepRooms && config.candidatePrepRooms[num]) {
       return config.candidatePrepRooms[num];
     }
-    if (num === 1) return '455강의실 (1번 검토실 ➔ 실습실 전환)';
-    if (num === 2) return '457강의실 (2번 검토실)';
-    if (num === 3) return '458강의실 (3번 검토실)';
-    if (num === 4) return '459강의실 (4번 검토실)';
-    return `${455 + num}강의실 (${num}번 검토실)`;
+    const evalShort = evalRoomName.split(' ')[0];
+    if (num === 1) return `${evalShort} (1번 검토실 ➔ 본실습실 전환)`;
+    if (rooms[num]) return `${rooms[num].name.split(' ')[0]} (${num}번 검토실)`;
+    return `제${num}검토실`;
   };
 
-  const evalRoom = rooms.find((r) => r.id === 'room-455') || rooms[0] || {
+  const evalRoom = rooms[0] || {
     id: 'room-455',
-    name: config.evalRoomName || '455강의실 (역량평가 실습실)',
+    name: evalRoomName,
     assessors: '수석평가위원 2인',
   };
 
-  const videoRoomName = config.videoRoomName || '456강의실 (실습영상 시청실)';
   const videoWatchMins = config.videoWatchMinutes || 40;
   const transitMins = typeof config.transitMinutes === 'number' ? config.transitMinutes : 10;
 
@@ -242,8 +243,8 @@ export function generateSchedule(
           day: s.day,
           date: s.date,
           timeStr: `${s.transitStartTime} ~ ${s.transitEndTime}`,
-          location: `${s.prepRoomName?.split(' ')[0] || '검토실'} ➔ 455실 이동`,
-          activity: `과제숙지 후 대기 및 455실습실 입실 (10분)`,
+          location: `${s.prepRoomName?.split(' ')[0] || '검토실'} ➔ ${evalRoomName.split(' ')[0]} 이동`,
+          activity: `과제숙지 후 대기 및 ${evalRoomName.split(' ')[0]} 입실 (10분)`,
           exerciseName: s.exerciseName,
           exerciseCode: s.exerciseCode,
           color: 'amber',
@@ -251,12 +252,12 @@ export function generateSchedule(
         });
       }
 
-      // 3. Evaluation in 455강의실
+      // 3. Evaluation in evalRoomName
       items.push({
         day: s.day,
         date: s.date,
         timeStr: `${s.evalStartTime} ~ ${s.evalEndTime}`,
-        location: config.evalRoomName || '455강의실 (역량평가 실습실)',
+        location: evalRoomName,
         activity: `역량평가 본 실습 (${s.exerciseCode} 평가)`,
         exerciseName: s.exerciseName,
         exerciseCode: s.exerciseCode,
@@ -264,14 +265,14 @@ export function generateSchedule(
         type: 'EVAL',
       });
 
-      // 4. Video Watching in 456강의실
+      // 4. Video Watching in videoRoomName
       if (s.videoStartTime && s.videoEndTime) {
         items.push({
           day: s.day,
           date: s.date,
           timeStr: `${s.videoStartTime} ~ ${s.videoEndTime}`,
           location: videoRoomName,
-          activity: `456강의실 이동 ➔ 실습영상 시청 및 피드백`,
+          activity: `${videoRoomName.split(' ')[0]} 이동 ➔ 실습영상 시청 및 피드백`,
           exerciseName: s.exerciseName,
           exerciseCode: s.exerciseCode,
           color: 'purple',

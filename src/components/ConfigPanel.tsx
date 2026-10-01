@@ -13,8 +13,12 @@ import {
   ChevronUp,
   UserPlus,
   Check,
+  Sparkles,
+  Layers,
+  Edit3,
 } from 'lucide-react';
 import { GeneralConfig, Exercise, Room, Candidate, ExerciseType } from '../types';
+import { CLASSROOM_PRESETS, COHORT_CANDIDATE_SAMPLES, ClassroomPreset } from '../utils/presets';
 
 interface ConfigPanelProps {
   config: GeneralConfig;
@@ -41,6 +45,89 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'EXERCISES' | 'ROOMS' | 'CANDIDATES'>('GENERAL');
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Cohort Selection Handler
+  const handleSelectCohort = (cohortNum: number) => {
+    const rawBase = config.baseTitle || config.title.replace(/\s*\([^)]*기\)\s*$/, '').trim() || '2026년도 4급 보직후보자 역량평가 실습표';
+    const cohortName = `제${cohortNum}기`;
+    const newTitle = `${rawBase} (${cohortName})`;
+    onChangeConfig({
+      ...config,
+      cohort: cohortNum,
+      cohortName,
+      baseTitle: rawBase,
+      title: newTitle,
+    });
+  };
+
+  // Cohort Candidates Quick Load
+  const handleApplyCohortCandidates = (cohortNum: number) => {
+    const sample = COHORT_CANDIDATE_SAMPLES[cohortNum];
+    if (sample) {
+      const updated = sample.map((cand, idx) => ({
+        ...cand,
+        prepRoom: config.candidatePrepRooms[idx + 1] || cand.prepRoom,
+      }));
+      onChangeCandidates(updated);
+    }
+  };
+
+  // Classroom Preset Handler
+  const handleApplyClassroomPreset = (preset: ClassroomPreset) => {
+    onChangeConfig({
+      ...config,
+      evalRoomName: preset.evalRoomName,
+      videoRoomName: preset.videoRoomName,
+      candidatePrepRooms: { ...preset.prepRooms },
+    });
+    onChangeRooms(preset.rooms);
+  };
+
+  // Direct Classroom Name Updates
+  const handleUpdateEvalRoom = (name: string) => {
+    const updatedRooms = [...rooms];
+    if (updatedRooms[0]) {
+      updatedRooms[0] = { ...updatedRooms[0], name };
+    }
+    const updatedPrep = { ...config.candidatePrepRooms };
+    updatedPrep[1] = `${name.split(' ')[0]} (1번 검토실 ➔ 본실습실 전환)`;
+    onChangeConfig({
+      ...config,
+      evalRoomName: name,
+      candidatePrepRooms: updatedPrep,
+    });
+    onChangeRooms(updatedRooms);
+  };
+
+  const handleUpdateVideoRoom = (name: string) => {
+    const updatedRooms = [...rooms];
+    if (updatedRooms[1]) {
+      updatedRooms[1] = { ...updatedRooms[1], name };
+    }
+    onChangeConfig({
+      ...config,
+      videoRoomName: name,
+    });
+    onChangeRooms(updatedRooms);
+  };
+
+  const handleUpdatePrepRoom = (candidateNum: number, roomName: string) => {
+    const updatedPrep = {
+      ...config.candidatePrepRooms,
+      [candidateNum]: roomName,
+    };
+    const updatedRooms = [...rooms];
+    if (candidateNum === 1 && updatedRooms[0]) {
+      updatedRooms[0] = { ...updatedRooms[0], name: roomName.split(' ')[0] };
+    } else if (candidateNum >= 2 && updatedRooms[candidateNum]) {
+      updatedRooms[candidateNum] = { ...updatedRooms[candidateNum], name: roomName };
+    }
+    onChangeConfig({
+      ...config,
+      candidatePrepRooms: updatedPrep,
+    });
+    onChangeRooms(updatedRooms);
+  };
 
   // Exercise handlers
   const handleToggleExercise = (id: string) => {
@@ -224,92 +311,260 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             {/* TAB 1: GENERAL */}
             {activeTab === 'GENERAL' && (
               <div className="space-y-4">
-                {/* 5 Classroom Rule Banner */}
-                <div className="p-3.5 bg-red-50/80 border border-red-200 rounded-xl text-xs space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-red-900 flex items-center gap-1.5 text-sm">
-                      <DoorOpen className="w-4 h-4 text-red-700" />
-                      5개 강의실 운영 룰 (4인 개별 분산 검토 + 455실 실습 + 456실 영상 시청)
-                    </span>
-                    <span className="px-2 py-0.5 bg-red-600 text-white rounded font-mono font-bold text-[11px]">
-                      5개실 분산 운영
-                    </span>
+                {/* Course Name and Cohort Selection */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                    {/* Course Title */}
+                    <div className="md:col-span-6">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-slate-700">
+                          과정명 (역량평가 워크숍명)
+                        </label>
+                        <span className="text-[11px] text-slate-400">
+                          기수 선택 시 타이틀 자동 반영
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={config.title}
+                        onChange={(e) => onChangeConfig({ ...config, title: e.target.value })}
+                        className="w-full text-sm font-bold border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden"
+                        placeholder="예: 2026년도 4급 보직후보자 역량평가 실습표 (제1기)"
+                      />
+                    </div>
+
+                    {/* Cohort Selector */}
+                    <div className="md:col-span-3">
+                      <label className="block text-xs font-bold text-red-700 mb-1 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        기수 선택 (Cohort)
+                      </label>
+                      <select
+                        value={config.cohort || 1}
+                        onChange={(e) => handleSelectCohort(Number(e.target.value))}
+                        className="w-full text-sm font-black border-2 border-red-300 bg-white rounded-lg px-3 py-2 text-red-900 focus:ring-2 focus:ring-red-500 focus:outline-hidden cursor-pointer"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 20].map((num) => (
+                          <option key={num} value={num}>
+                            제{num}기 ({num}기차 운영)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Quick Cohort Buttons */}
+                    <div className="md:col-span-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          빠른 기수 전환
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyCohortCandidates(Number(config.cohort) || 1)}
+                          className="text-[10px] font-bold text-red-600 hover:text-red-700 underline"
+                          title="선택된 기수에 맞는 추천 피평가자 명단을 자동으로 채웁니다"
+                        >
+                          해당 기수 명단적용
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((cNum) => (
+                          <button
+                            key={cNum}
+                            type="button"
+                            onClick={() => handleSelectCohort(cNum)}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-md border transition-colors ${
+                              Number(config.cohort) === cNum
+                                ? 'bg-red-600 text-white border-red-600 shadow-2xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            {cNum}기
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-slate-700 pt-1">
-                    <div className="p-2 bg-white rounded-lg border border-red-200 col-span-2 sm:col-span-1">
-                      <strong className="text-red-900 block font-bold">455강의실</strong>
-                      <span className="text-[11px] text-slate-600 block">1번 교육생 검토실</span>
-                      <span className="text-[10px] text-emerald-700 font-extrabold block mt-0.5">
-                        ➔ 이후 본 실습실 전환!
-                      </span>
+
+                  {/* Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        운영 시작일자 (1일차)
+                      </label>
+                      <input
+                        type="date"
+                        value={config.startDate}
+                        onChange={(e) =>
+                          onChangeConfig({
+                            ...config,
+                            startDate: e.target.value,
+                            endDate: config.endDate < e.target.value ? e.target.value : config.endDate,
+                          })
+                        }
+                        className="w-full text-xs font-medium border border-slate-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden"
+                      />
                     </div>
-                    <div className="p-2 bg-white rounded-lg border border-purple-200 col-span-2 sm:col-span-1 bg-purple-50/40">
-                      <strong className="text-purple-900 block font-bold">456강의실</strong>
-                      <span className="text-[11px] text-purple-700 font-bold block">실습영상 시청실</span>
-                      <span className="text-[10px] text-slate-500 block mt-0.5">실습 종료 후 전원 이동</span>
-                    </div>
-                    <div className="p-2 bg-white rounded-lg border border-slate-200">
-                      <strong className="text-red-900 block font-bold">457강의실</strong>
-                      <span className="text-[11px] text-slate-600 block">2번 교육생 검토실</span>
-                      <span className="text-[10px] text-slate-500 block mt-0.5">시차 후 455실 입실</span>
-                    </div>
-                    <div className="p-2 bg-white rounded-lg border border-slate-200">
-                      <strong className="text-red-900 block font-bold">458강의실</strong>
-                      <span className="text-[11px] text-slate-600 block">3번 교육생 검토실</span>
-                      <span className="text-[10px] text-slate-500 block mt-0.5">시차 후 455실 입실</span>
-                    </div>
-                    <div className="p-2 bg-white rounded-lg border border-slate-200">
-                      <strong className="text-red-900 block font-bold">459강의실</strong>
-                      <span className="text-[11px] text-slate-600 block">4번 교육생 검토실</span>
-                      <span className="text-[10px] text-slate-500 block mt-0.5">시차 후 455실 입실</span>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        운영 끝 일자 (2일차 종료일)
+                      </label>
+                      <input
+                        type="date"
+                        value={config.endDate}
+                        min={config.startDate}
+                        onChange={(e) => onChangeConfig({ ...config, endDate: e.target.value })}
+                        className="w-full text-xs font-medium border border-slate-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden"
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Course Name and Dates */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="lg:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      과정명 (역량평가 워크숍명)
-                    </label>
-                    <input
-                      type="text"
-                      value={config.title}
-                      onChange={(e) => onChangeConfig({ ...config, title: e.target.value })}
-                      className="w-full text-sm font-bold border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-hidden"
-                      placeholder="예: 2026년도 4급 보직후보자 역량평가 실습표"
-                    />
+                {/* 5 Classroom Configuration Card (기수별 강의실 변경 지원) */}
+                <div className="p-4 bg-red-50/80 border border-red-200 rounded-xl space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <DoorOpen className="w-5 h-5 text-red-700" />
+                      <div>
+                        <span className="font-extrabold text-red-950 text-sm block">
+                          기수별 운영 강의실 명칭 설정 (매 기수별 강의실 변경 가능)
+                        </span>
+                        <span className="text-[11px] text-red-800">
+                          기수별로 배정된 강의실 이름을 아래에서 직접 수정하거나 추천 프리셋을 원클릭 선택하세요.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quick Classroom Presets */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-slate-600 hidden md:inline">
+                        강의실 프리셋:
+                      </span>
+                      {CLASSROOM_PRESETS.map((cp) => (
+                        <button
+                          key={cp.id}
+                          type="button"
+                          onClick={() => handleApplyClassroomPreset(cp)}
+                          className="px-2 py-1 text-[11px] font-bold bg-white hover:bg-red-100 text-red-900 border border-red-200 rounded-md transition-colors shadow-2xs"
+                          title={cp.description}
+                        >
+                          {cp.locationGroup}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      운영 시작일자
-                    </label>
-                    <input
-                      type="date"
-                      value={config.startDate}
-                      onChange={(e) =>
-                        onChangeConfig({
-                          ...config,
-                          startDate: e.target.value,
-                          endDate: config.endDate < e.target.value ? e.target.value : config.endDate,
-                        })
-                      }
-                      className="w-full text-sm font-medium border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-hidden"
-                    />
-                  </div>
+                  {/* Editable 5 Classroom Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-1">
+                    {/* Room 1: Main Eval Room */}
+                    <div className="p-2.5 bg-white rounded-lg border-2 border-red-300 shadow-2xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800">
+                          본 실습실 (메인)
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-extrabold">
+                          1번 검토 ➔ 실습전환
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={config.evalRoomName}
+                        onChange={(e) => handleUpdateEvalRoom(e.target.value)}
+                        className="w-full text-xs font-bold text-red-950 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-red-500 bg-white"
+                        placeholder="예: 455강의실"
+                      />
+                      <span className="text-[10px] text-slate-500 block leading-tight">
+                        평가위원 2인 / 롤플레이어 1인
+                      </span>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      운영 끝 일자 (종료일)
-                    </label>
-                    <input
-                      type="date"
-                      value={config.endDate}
-                      min={config.startDate}
-                      onChange={(e) => onChangeConfig({ ...config, endDate: e.target.value })}
-                      className="w-full text-sm font-medium border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-hidden"
-                    />
+                    {/* Room 2: Video Watch Room */}
+                    <div className="p-2.5 bg-white rounded-lg border-2 border-purple-300 shadow-2xs space-y-1 bg-purple-50/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
+                          실습영상 시청실
+                        </span>
+                        <span className="text-[10px] text-purple-700 font-bold">
+                          전원 이동
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={config.videoRoomName}
+                        onChange={(e) => handleUpdateVideoRoom(e.target.value)}
+                        className="w-full text-xs font-bold text-purple-950 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-purple-500 bg-white"
+                        placeholder="예: 456강의실"
+                      />
+                      <span className="text-[10px] text-slate-500 block leading-tight">
+                        실습 종료 교육생 영상 시청
+                      </span>
+                    </div>
+
+                    {/* Room 3: Candidate 2 Prep Room */}
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                          2번 검토실
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          2번 교육생 전용
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={config.candidatePrepRooms[2] || ''}
+                        onChange={(e) => handleUpdatePrepRoom(2, e.target.value)}
+                        className="w-full text-xs font-bold text-slate-900 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-red-500 bg-white"
+                        placeholder="예: 457강의실"
+                      />
+                      <span className="text-[10px] text-slate-500 block leading-tight">
+                        과제숙지 후 본실습실 이동
+                      </span>
+                    </div>
+
+                    {/* Room 4: Candidate 3 Prep Room */}
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                          3번 검토실
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          3번 교육생 전용
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={config.candidatePrepRooms[3] || ''}
+                        onChange={(e) => handleUpdatePrepRoom(3, e.target.value)}
+                        className="w-full text-xs font-bold text-slate-900 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-red-500 bg-white"
+                        placeholder="예: 458강의실"
+                      />
+                      <span className="text-[10px] text-slate-500 block leading-tight">
+                        과제숙지 후 본실습실 이동
+                      </span>
+                    </div>
+
+                    {/* Room 5: Candidate 4 Prep Room */}
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                          4번 검토실
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          4번 교육생 전용
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={config.candidatePrepRooms[4] || ''}
+                        onChange={(e) => handleUpdatePrepRoom(4, e.target.value)}
+                        className="w-full text-xs font-bold text-slate-900 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-red-500 bg-white"
+                        placeholder="예: 459강의실"
+                      />
+                      <span className="text-[10px] text-slate-500 block leading-tight">
+                        과제숙지 후 본실습실 이동
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -795,9 +1050,34 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             {/* TAB 3: ROOMS */}
             {activeTab === 'ROOMS' && (
               <div className="space-y-4">
+                {/* Classroom preset bar */}
+                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-extrabold text-amber-900 block flex items-center gap-1.5">
+                      <DoorOpen className="w-4 h-4 text-amber-700" />
+                      기수별 추천 강의실 일괄 배정
+                    </span>
+                    <span className="text-amber-800 text-[11px]">
+                      층별 / 건물별 운영 강의실 5개실을 원클릭으로 일괄 전환할 수 있습니다.
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CLASSROOM_PRESETS.map((cp) => (
+                      <button
+                        key={cp.id}
+                        type="button"
+                        onClick={() => handleApplyClassroomPreset(cp)}
+                        className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 font-bold border border-amber-300 rounded-md shadow-2xs transition-colors"
+                      >
+                        {cp.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">
-                    평가실별 명칭과 배정된 평가위원(심사위원), 롤플레이어(연기자)를 지정합니다.
+                    평가실별 명칭과 배정된 평가위원(심사위원), 롤플레이어(연기자)를 직접 지정·변경합니다.
                   </p>
                   <button
                     type="button"
@@ -810,65 +1090,101 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {rooms.map((room, idx) => (
-                    <div
-                      key={room.id}
-                      className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
-                          Room {idx + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteRoom(room.id)}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50"
-                          title="평가실 삭제"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                  {rooms.map((room, idx) => {
+                    const isMainEval = idx === 0;
+                    const isVideo = idx === 1;
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">
-                          평가실 명칭
-                        </label>
-                        <input
-                          type="text"
-                          value={room.name}
-                          onChange={(e) => handleUpdateRoom(room.id, 'name', e.target.value)}
-                          className="w-full text-xs font-bold border border-slate-300 rounded-md px-2.5 py-1.5 focus:ring-1 focus:ring-red-500 focus:outline-hidden"
-                          placeholder="예: 제1평가실"
-                        />
-                      </div>
+                    return (
+                      <div
+                        key={room.id}
+                        className={`p-4 rounded-xl border bg-white shadow-xs space-y-3 ${
+                          isMainEval
+                            ? 'border-red-300 ring-1 ring-red-200'
+                            : isVideo
+                            ? 'border-purple-300 ring-1 ring-purple-200'
+                            : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-xs font-bold px-2 py-0.5 rounded ${
+                                isMainEval
+                                  ? 'bg-red-100 text-red-800'
+                                  : isVideo
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {isMainEval
+                                ? '메인 실습실'
+                                : isVideo
+                                ? '영상시청실'
+                                : `${idx + 1}번 검토실`}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              Room {idx + 1}
+                            </span>
+                          </div>
+                          {!isMainEval && !isVideo && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRoom(room.id)}
+                              className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                              title="평가실 삭제"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">
-                          평가위원 명단
-                        </label>
-                        <input
-                          type="text"
-                          value={room.assessors}
-                          onChange={(e) => handleUpdateRoom(room.id, 'assessors', e.target.value)}
-                          className="w-full text-xs border border-slate-300 rounded-md px-2.5 py-1.5 focus:ring-1 focus:ring-red-500 focus:outline-hidden"
-                          placeholder="예: 김수석 위원, 이전문 위원"
-                        />
-                      </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">
+                            강의실 / 평가실 명칭
+                          </label>
+                          <input
+                            type="text"
+                            value={room.name}
+                            onChange={(e) => {
+                              const newName = e.target.value;
+                              handleUpdateRoom(room.id, 'name', newName);
+                              if (isMainEval) handleUpdateEvalRoom(newName);
+                              if (isVideo) handleUpdateVideoRoom(newName);
+                              if (idx >= 2) handleUpdatePrepRoom(idx, newName);
+                            }}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-md px-2.5 py-1.5 focus:ring-1 focus:ring-red-500 focus:outline-hidden"
+                            placeholder="예: 455강의실"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">
-                          롤플레이어 / 연기자 (선택)
-                        </label>
-                        <input
-                          type="text"
-                          value={room.roleplayer || ''}
-                          onChange={(e) => handleUpdateRoom(room.id, 'roleplayer', e.target.value)}
-                          className="w-full text-xs border border-slate-300 rounded-md px-2.5 py-1.5 focus:ring-1 focus:ring-red-500 focus:outline-hidden"
-                          placeholder="예: 최연기 주무관"
-                        />
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">
+                            평가위원 / 진행요원 명단
+                          </label>
+                          <input
+                            type="text"
+                            value={room.assessors}
+                            onChange={(e) => handleUpdateRoom(room.id, 'assessors', e.target.value)}
+                            className="w-full text-xs border border-slate-300 rounded-md px-2.5 py-1.5 focus:ring-1 focus:ring-red-500 focus:outline-hidden"
+                            placeholder="예: 김수석 위원, 이전문 위원"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">
+                            롤플레이어 / 진행 비고
+                          </label>
+                          <input
+                            type="text"
+                            value={room.roleplayer || ''}
+                            onChange={(e) => handleUpdateRoom(room.id, 'roleplayer', e.target.value)}
+                            className="w-full text-xs border border-slate-300 rounded-md px-2.5 py-1.5 focus:ring-1 focus:ring-red-500 focus:outline-hidden"
+                            placeholder="예: 최연기 주무관 (역할수행 연기)"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -876,10 +1192,42 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             {/* TAB 4: CANDIDATES */}
             {activeTab === 'CANDIDATES' && (
               <div className="space-y-4">
+                {/* Cohort Candidates Quick Load Banner */}
+                <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-extrabold text-purple-950 block flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-purple-700" />
+                      기수별 추천 피평가자(수험생) 명단 불러오기
+                    </span>
+                    <span className="text-purple-800 text-[11px]">
+                      매 기수별로 변경되는 피평가자 명단을 원클릭으로 즉시 세팅합니다.
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1, 2, 3, 4, 5].map((cNum) => (
+                      <button
+                        key={cNum}
+                        type="button"
+                        onClick={() => {
+                          handleSelectCohort(cNum);
+                          handleApplyCohortCandidates(cNum);
+                        }}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-colors ${
+                          Number(config.cohort) === cNum
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                            : 'bg-white hover:bg-purple-100 text-purple-900 border-purple-200'
+                        }`}
+                      >
+                        {cNum}기 명단 ({cNum === 1 ? '김보직' : cNum === 2 ? '정기획' : cNum === 3 ? '송전략' : cNum === 4 ? '유미래' : '권전문'} 외)
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <p className="text-xs text-slate-500">
-                      총 <strong className="text-red-700 font-bold">{candidates.length}명</strong>의 피평가자가 등록되어 있습니다.
+                      총 <strong className="text-red-700 font-bold">{candidates.length}명</strong>의 피평가자가 등록되어 있습니다. 성명, 수험번호, 소속 및 검토실을 직접 수정할 수 있습니다.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -889,7 +1237,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold transition-colors"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
-                      명단 일괄 붙여넣기 / 자동 생성
+                      명단 일괄 붙여넣기
                     </button>
                     <button
                       type="button"
@@ -902,14 +1250,15 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-lg">
+                <div className="max-h-80 overflow-y-auto border border-slate-200 rounded-lg">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-100 text-slate-700 font-semibold sticky top-0 border-b border-slate-200">
                       <tr>
-                        <th className="p-2.5 w-16 text-center">연번</th>
+                        <th className="p-2.5 w-14 text-center">연번</th>
                         <th className="p-2.5 w-24">수험번호</th>
-                        <th className="p-2.5">피평가자 성명</th>
+                        <th className="p-2.5 w-44">피평가자 성명</th>
                         <th className="p-2.5">소속 / 직급</th>
+                        <th className="p-2.5 w-48">지정 과제검토실</th>
                         <th className="p-2.5 w-12 text-center">삭제</th>
                       </tr>
                     </thead>
@@ -936,7 +1285,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                               onChange={(e) =>
                                 handleUpdateCandidate(cand.id, 'name', e.target.value)
                               }
-                              className="w-full font-semibold border border-slate-200 rounded px-2 py-1 bg-white"
+                              className="w-full font-bold text-slate-900 border border-slate-200 rounded px-2 py-1 bg-white focus:border-red-500"
+                              placeholder="성명 입력"
                             />
                           </td>
                           <td className="p-2">
@@ -948,6 +1298,17 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                               }
                               placeholder="부서/직급 입력"
                               className="w-full border border-slate-200 rounded px-2 py-1 bg-white"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={cand.prepRoom || config.candidatePrepRooms[idx + 1] || ''}
+                              onChange={(e) =>
+                                handleUpdateCandidate(cand.id, 'prepRoom', e.target.value)
+                              }
+                              placeholder="검토실 지정"
+                              className="w-full text-xs font-semibold text-red-900 border border-slate-200 rounded px-2 py-1 bg-red-50/30"
                             />
                           </td>
                           <td className="p-2 text-center">
