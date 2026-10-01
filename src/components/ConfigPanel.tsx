@@ -348,29 +348,29 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   </div>
 
                   <div className="text-[11px] text-slate-600 bg-white/70 p-2 rounded-md border border-amber-200">
-                    💡 <strong>역산 예시:</strong> 실습 시작을 <strong>{config.evalStartTime || '10:00'}</strong>으로 설정 시 ➔
-                    1번 교육생의 과제숙지 종료는 <strong>{(() => {
-                      const [h, m] = (config.evalStartTime || '10:00').split(':').map(Number);
-                      const total = h * 60 + m - (config.transitMinutes || 10);
-                      const rh = Math.floor(total / 60) % 24;
-                      const rm = total % 60;
-                      return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
-                    })()}</strong>(10분 대기 후 455실 입실),
-                    과제검토 시작은 <strong>{(() => {
+                    💡 <strong>순차 진행 예시:</strong> 1번 실습 시작 <strong>{config.evalStartTime || '10:00'}</strong> 설정 시 ➔
+                    1번 과제검토는 <strong>{(() => {
                       const [h, m] = (config.evalStartTime || '10:00').split(':').map(Number);
                       const total = h * 60 + m - (config.transitMinutes || 10) - (exercises[0]?.prepMinutes || 30);
                       const rh = Math.floor(total / 60) % 24;
                       const rm = total % 60;
                       return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
-                    })()}</strong>으로 자동 정렬됩니다.
+                    })()}</strong> ~ <strong>{(() => {
+                      const [h, m] = (config.evalStartTime || '10:00').split(':').map(Number);
+                      const total = h * 60 + m - (config.transitMinutes || 10);
+                      const rh = Math.floor(total / 60) % 24;
+                      const rm = total % 60;
+                      return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
+                    })()}</strong> (10분 대기 후 10:00 실습 시작),
+                    1번 실습 종료(10:20) <strong>10분 후인 10:30에 2번 실습이 시작</strong>되며, 이에 맞춰 2번의 과제검토(09:50~10:20)도 자동 세팅됩니다.
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-amber-600" />
-                      과제숙지 후 실습실 이동·대기 시간
+                      과제숙지 후 실습실 이동·대기
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -385,19 +385,46 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                             transitMinutes: Math.max(0, Number(e.target.value) || 0),
                           })
                         }
-                        className="w-24 text-sm font-black text-amber-900 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-hidden text-center"
+                        className="w-20 text-sm font-black text-amber-900 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-hidden text-center"
                       />
-                      <span className="text-xs font-bold text-slate-700">분 후 455실습 시작</span>
+                      <span className="text-xs font-bold text-slate-700">분 대기</span>
                     </div>
                     <span className="text-[11px] text-slate-400 mt-1 block">
-                      과제검토 종료 후 실습실 이동 및 평가위원 입실 대기 (10분)
+                      과제검토 종료 후 실습실 이동 및 대기 (10분)
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-red-600" />
+                      실습 종료 후 다음 실습 간격
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="30"
+                        step="5"
+                        value={typeof config.interCandidateBreakMinutes === 'number' ? config.interCandidateBreakMinutes : 10}
+                        onChange={(e) =>
+                          onChangeConfig({
+                            ...config,
+                            interCandidateBreakMinutes: Math.max(0, Number(e.target.value) || 0),
+                          })
+                        }
+                        className="w-20 text-sm font-black text-red-900 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-hidden text-center"
+                      />
+                      <span className="text-xs font-bold text-slate-700">분 후 시작</span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      실습 종료 10분 후 다음 교육생 실습 시작
                     </span>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
                       <DoorOpen className="w-3.5 h-3.5 text-purple-600" />
-                      456강의실 실습영상 시청 시간
+                      456강의실 영상 시청 시간
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -412,18 +439,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                             videoWatchMinutes: Math.max(10, Number(e.target.value) || 40),
                           })
                         }
-                        className="w-24 text-sm font-black text-purple-900 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-hidden text-center"
+                        className="w-20 text-sm font-black text-purple-900 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:outline-hidden text-center"
                       />
-                      <span className="text-xs font-bold text-slate-700">분간 영상 시청</span>
+                      <span className="text-xs font-bold text-slate-700">분간 시청</span>
                     </div>
                     <span className="text-[11px] text-slate-400 mt-1 block">
-                      평가실습 종료 후 456실로 이동하여 자신의 실습영상 시청
+                      평가 종료 후 456실 이동하여 영상 시청
                     </span>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      교육생 인원 빠른 설정 (4명 / 3명)
+                      교육생 인원 빠른 설정
                     </label>
                     <div className="flex items-center gap-2 mt-1">
                       <button

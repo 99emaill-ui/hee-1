@@ -47,6 +47,7 @@ export interface GeneralConfig {
   lunchStartTime: string; // "12:00"
   lunchDurationMinutes: number; // 60
   transitMinutes: number; // 과제숙지 후 실습실 이동/대기 시간 (기본 10분)
+  interCandidateBreakMinutes: number; // 교육생 평가실습 종료 후 다음 교육생 실습 시작까지 간격 (기본 10분)
   candidatePrepRooms: Record<number, string>; // 교육생 번호별 과제검토실
 }
 

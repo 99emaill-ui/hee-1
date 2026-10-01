@@ -98,28 +98,29 @@ export function generateSchedule(
     const evalMinutes = ex.evalMinutes; // e.g. PT: 20, IB: 50, RP: 30
     const gradeMinutes = ex.gradeMinutes; // e.g. 10
 
-    // Evaluation interval between consecutive candidates in 455강의실
-    // Each candidate uses 455실 for evalMinutes (e.g. PT 20분, RP 30분, IB 50분)
-    const sessionEvalInterval = evalMinutes;
+    // Break between candidates (10 minutes after previous candidate's eval finishes, the next candidate's eval begins)
+    const breakAfterEval = typeof config.interCandidateBreakMinutes === 'number'
+      ? config.interCandidateBreakMinutes
+      : 10;
 
     // Check if session start needs lunch adjustment
     currentEvalClock = handleLunch(currentEvalClock, evalMinutes);
-    const cand1EvalStartM = parseMinutes(currentEvalClock);
+    let runningCandEvalStartM = parseMinutes(currentEvalClock);
 
-    // Calculate slots for each candidate
+    // Calculate slots for each candidate sequentially
     candidates.forEach((cand, cIdx) => {
-      // Evaluation start time in 455강의실 for this candidate
-      let evalStartM = cand1EvalStartM + cIdx * sessionEvalInterval;
-
-      // Check lunch interruption
+      // Check lunch interruption for this candidate
       if (config.hasLunch && config.lunchDurationMinutes > 0) {
         const lunchStartM = parseMinutes(config.lunchStartTime);
         const lunchEndM = lunchStartM + config.lunchDurationMinutes;
-        if (evalStartM >= lunchStartM && evalStartM < lunchEndM) {
-          evalStartM = lunchEndM + (cIdx > 0 ? (evalStartM - lunchStartM) : 0);
+        if (runningCandEvalStartM >= lunchStartM && runningCandEvalStartM < lunchEndM) {
+          runningCandEvalStartM = lunchEndM;
+        } else if (runningCandEvalStartM < lunchStartM && runningCandEvalStartM + evalMinutes > lunchStartM) {
+          runningCandEvalStartM = lunchEndM;
         }
       }
 
+      const evalStartM = runningCandEvalStartM;
       const evalEndM = evalStartM + evalMinutes;
       const gradeEndM = evalEndM + gradeMinutes;
 
@@ -167,6 +168,9 @@ export function generateSchedule(
         videoEndTime: formatMinutes(videoEndM),
         videoRoomName,
       });
+
+      // Next candidate's evaluation starts 10 minutes after current candidate's evaluation ends
+      runningCandEvalStartM = evalEndM + breakAfterEval;
     });
 
     // Advance session clock for next exercise (if multiple active)

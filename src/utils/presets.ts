@@ -35,6 +35,7 @@ export const PRESETS: PresetConfig[] = [
       lunchStartTime: '12:30',
       lunchDurationMinutes: 60,
       transitMinutes: 10, // 과제숙지 후 10분 뒤 실습실 입실
+      interCandidateBreakMinutes: 10, // 교육생 실습 종료 10분 후 다음 교육생 실습 시작
       candidatePrepRooms: {
         1: '455강의실 (1번 검토실 ➔ 이후 실습실 전환)',
         2: '457강의실 (2번 검토실)',
@@ -138,6 +139,7 @@ export const PRESETS: PresetConfig[] = [
       lunchStartTime: '12:30',
       lunchDurationMinutes: 60,
       transitMinutes: 10,
+      interCandidateBreakMinutes: 10,
       candidatePrepRooms: {
         1: '455강의실 (1번 검토실 ➔ 실습실 전환)',
         2: '457강의실 (2번 검토실)',
