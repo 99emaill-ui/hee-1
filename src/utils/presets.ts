@@ -91,7 +91,7 @@ export const PRESETS: PresetConfig[] = [
         sessionPeriod: 'AM',
         customEvalStartTime: '09:30',
         prepMinutes: 50, // IB 과제검토 50분
-        evalMinutes: 50, // IB 평가실습 50분
+        evalMinutes: 20, // IB 평가실습 20분 (최신 개정)
         gradeMinutes: 10,
         color: 'amber',
         enabled: true,
@@ -206,7 +206,7 @@ export const PRESETS: PresetConfig[] = [
         sessionPeriod: 'AM',
         customEvalStartTime: '09:30',
         prepMinutes: 50,
-        evalMinutes: 50,
+        evalMinutes: 20,
         gradeMinutes: 10,
         color: 'amber',
         enabled: true,

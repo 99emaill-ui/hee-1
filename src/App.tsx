@@ -47,6 +47,13 @@ export default function App() {
     return generateSchedule(config, exercises, rooms, candidates);
   }, [config, exercises, rooms, candidates]);
 
+  // Handle Candidate direct updates
+  const handleUpdateCandidate = (id: string, field: keyof Candidate, value: string) => {
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+    );
+  };
+
   // Handle Preset selection
   const handleSelectPreset = (preset: PresetConfig) => {
     const today = new Date().toISOString().split('T')[0];
@@ -141,7 +148,7 @@ export default function App() {
               }`}
             >
               <User className="w-4 h-4" />
-              <span>2. 피평가자별 개인 동선표</span>
+              <span>2. 수험생 개인별 타임테이블</span>
             </button>
 
             <button
@@ -214,6 +221,8 @@ export default function App() {
             <CandidateTimelineView
               schedules={scheduleResult.candidateSchedules}
               candidates={candidates}
+              config={config}
+              onUpdateCandidate={handleUpdateCandidate}
             />
           )}
 
