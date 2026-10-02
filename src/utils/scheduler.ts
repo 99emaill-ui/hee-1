@@ -41,14 +41,22 @@ export function generateSchedule(
   const videoRoomName = config.videoRoomName || rooms[1]?.name || '456강의실 (실습영상 시청실)';
 
   // Get classroom mapping for candidates (1->main room, 2->prep 2, 3->prep 3, 4->prep 4)
-  const getPrepRoomForCandidate = (cand: Candidate, index: number): string => {
+  const getPrepRoomForCandidate = (cand: Candidate, index: number, isPrepDuringEval = false): string => {
     if (cand.prepRoom) return cand.prepRoom;
     const num = index + 1;
     if (config.candidatePrepRooms && config.candidatePrepRooms[num]) {
+      if (num === 1 && isPrepDuringEval) {
+        return config.candidatePrepRooms[2] || '457강의실 (1번 검토실)';
+      }
       return config.candidatePrepRooms[num];
     }
     const evalShort = evalRoomName.split(' ')[0];
-    if (num === 1) return `${evalShort} (1번 검토실 ➔ 본실습실 전환)`;
+    if (num === 1) {
+      if (isPrepDuringEval) {
+        return `457강의실 (${num}번 검토실)`;
+      }
+      return `${evalShort} (1번 검토실 ➔ 본실습실 전환)`;
+    }
     if (rooms[num]) return `${rooms[num].name.split(' ')[0]} (${num}번 검토실)`;
     return `제${num}검토실`;
   };
@@ -143,8 +151,46 @@ export function generateSchedule(
 
     let runningCandEvalStartM = parseMinutes(baseEvalStart);
 
-    // Calculate slots for each candidate sequentially
-    candidates.forEach((cand, cIdx) => {
+    // Determine candidate evaluation order for this exercise:
+    // PT: 1, 2, 3 (4: 1, 2, 3, 4) -> offset = 0
+    // RP: 2, 3, 1 (4: 2, 3, 4, 1) -> offset = 1
+    // IB: 3, 1, 2 (4: 3, 4, 1, 2) -> offset = 2
+    let offset = 0;
+    if (ex.code === 'PT') {
+      offset = 0;
+    } else if (ex.code === 'RP') {
+      offset = 1;
+    } else if (ex.code === 'IB') {
+      offset = 2;
+    } else {
+      offset = exIdx % candidates.length;
+    }
+
+    const N = candidates.length;
+    const orderedCandidates: { cand: Candidate; origIdx: number }[] = [];
+    for (let k = 0; k < N; k++) {
+      const candIdx = (offset + k) % N;
+      orderedCandidates.push({ cand: candidates[candIdx], origIdx: candIdx });
+    }
+
+    // Step 1: Pre-calculate all candidate evaluation timings in rotation order
+    interface TimingInfo {
+      cand: Candidate;
+      origIdx: number;
+      orderRank: number; // 1, 2, 3, 4
+      currentTransitMins: number;
+      evalStartM: number;
+      evalEndM: number;
+      gradeEndM: number;
+      transitStartM: number;
+      transitEndM: number;
+      prepStartM: number;
+      prepEndM: number;
+    }
+
+    const sessionTimings: TimingInfo[] = [];
+
+    orderedCandidates.forEach(({ cand, origIdx }, k) => {
       // If lunch break intervenes before start (only on Day 1 if relevant)
       if (exDay === 1 && config.hasLunch && config.lunchDurationMinutes > 0) {
         const lunchStartM = parseMinutes(config.lunchStartTime);
@@ -158,10 +204,13 @@ export function generateSchedule(
       const evalEndM = evalStartM + evalMinutes;
       const gradeEndM = evalEndM + gradeMinutes;
 
-      // Preparation time calculation:
-      // Preparation MUST end exactly transitMins (10m) before evalStartM!
+      // IB만 평가실습 전에 대기시간 10분 주고 PT, RP는 대기시간 삭제 (0분)
+      const currentTransitMins = ex.code === 'IB'
+        ? (typeof config.transitMinutes === 'number' ? config.transitMinutes : 10)
+        : 0;
+
       const transitEndM = evalStartM;
-      const transitStartM = transitEndM - transitMins;
+      const transitStartM = transitEndM - currentTransitMins;
       const prepEndM = transitStartM;
       const prepStartM = prepEndM - prepMinutes;
 
@@ -169,14 +218,55 @@ export function generateSchedule(
         earliestPrepStartM = prepStartM;
       }
 
-      // Video watching: immediately after this candidate's eval finishes in 455실
-      const videoStartM = evalEndM;
-      const videoEndM = videoStartM + videoWatchMins;
+      sessionTimings.push({
+        cand,
+        origIdx,
+        orderRank: k + 1,
+        currentTransitMins,
+        evalStartM,
+        evalEndM,
+        gradeEndM,
+        transitStartM,
+        transitEndM,
+        prepStartM,
+        prepEndM,
+      });
 
-      const prepRoom = getPrepRoomForCandidate(cand, cIdx);
+      // Next candidate's evaluation starts 10 minutes after current candidate's evaluation ends
+      runningCandEvalStartM = evalEndM + breakAfterEval;
+    });
+
+    // Session last candidate's evaluation end time (e.g. 3번 or 4번 피평가자의 실습종료 시간)
+    const sessionLastTiming = sessionTimings[sessionTimings.length - 1];
+    const sessionLastEvalEndM = sessionLastTiming ? sessionLastTiming.evalEndM : runningCandEvalStartM;
+
+    // Step 2: Push slots with video watching: starts 10 minutes after candidate's evaluation ends,
+    // and continues until the session's last candidate's evaluation ends
+    // [운영 규칙]
+    // 1. 3명일 때: 마지막 사람(3번째 실습자)은 실습 종료 즉시 세션이 마감되므로 영상시청 시간 삭제 (없음)
+    // 2. 4명일 때: 3번째 실습자는 4번째 실습자가 평가 중이므로 영상시청 시간(20분) 유지, 마지막인 4번째 실습자만 영상시청 삭제
+    sessionTimings.forEach((timing) => {
+      const isLastCandidateInSession = timing.orderRank === sessionTimings.length;
+
+      let videoStartStr: string | undefined = undefined;
+      let videoEndStr: string | undefined = undefined;
+
+      if (!isLastCandidateInSession) {
+        const candidateVideoStartM = timing.evalEndM + 10; // 평가실습 10분 후 시작
+        const candidateVideoEndM = sessionLastEvalEndM; // 마지막(3번/4번) 실습종료 시간까지
+
+        if (candidateVideoStartM < candidateVideoEndM) {
+          videoStartStr = formatMinutes(candidateVideoStartM);
+          videoEndStr = formatMinutes(candidateVideoEndM);
+        }
+      }
+
+      // Check if prep happens during another candidate's evaluation in 455실
+      const isPrepDuringEval = timing.orderRank > 1;
+      const prepRoom = getPrepRoomForCandidate(timing.cand, timing.origIdx, isPrepDuringEval);
 
       slots.push({
-        id: `slot-${ex.id}-${cand.id}`,
+        id: `slot-${ex.id}-${timing.cand.id}`,
         day: exDay,
         date: slotDate,
         sessionPeriod: sessionPeriod === 'AM' ? '오전' : '오후',
@@ -185,27 +275,24 @@ export function generateSchedule(
         exerciseName: ex.name,
         exerciseColor: ex.color,
         exerciseType: 'INDIVIDUAL',
-        round: roundCounter++,
+        round: timing.orderRank,
         roomId: evalRoom.id,
         roomName: evalRoom.name,
-        candidateIds: [cand.id],
-        candidateCodes: [cand.code],
-        candidateNames: [cand.name],
-        prepStartTime: formatMinutes(prepStartM),
-        prepEndTime: formatMinutes(prepEndM),
+        candidateIds: [timing.cand.id],
+        candidateCodes: [timing.cand.code],
+        candidateNames: [timing.cand.name],
+        prepStartTime: formatMinutes(timing.prepStartM),
+        prepEndTime: formatMinutes(timing.prepEndM),
         prepRoomName: prepRoom,
-        transitStartTime: formatMinutes(transitStartM),
-        transitEndTime: formatMinutes(transitEndM),
-        evalStartTime: formatMinutes(evalStartM),
-        evalEndTime: formatMinutes(evalEndM),
-        gradeEndTime: formatMinutes(gradeEndM),
-        videoStartTime: formatMinutes(videoStartM),
-        videoEndTime: formatMinutes(videoEndM),
+        transitStartTime: timing.currentTransitMins > 0 ? formatMinutes(timing.transitStartM) : undefined,
+        transitEndTime: timing.currentTransitMins > 0 ? formatMinutes(timing.transitEndM) : undefined,
+        evalStartTime: formatMinutes(timing.evalStartM),
+        evalEndTime: formatMinutes(timing.evalEndM),
+        gradeEndTime: formatMinutes(timing.gradeEndM),
+        videoStartTime: videoStartStr,
+        videoEndTime: videoEndStr,
         videoRoomName,
       });
-
-      // Next candidate's evaluation starts 10 minutes after current candidate's evaluation ends
-      runningCandEvalStartM = evalEndM + breakAfterEval;
     });
 
     // Advance session clock
@@ -237,14 +324,14 @@ export function generateSchedule(
         });
       }
 
-      // 2. 10-minute movement / waiting buffer
-      if (s.transitStartTime && s.transitEndTime) {
+      // 2. 역량평가 대기 (IB만 10분, PT/RP는 대기시간 삭제)
+      if (s.transitStartTime && s.transitEndTime && s.transitStartTime !== s.transitEndTime) {
         items.push({
           day: s.day,
           date: s.date,
           timeStr: `${s.transitStartTime} ~ ${s.transitEndTime}`,
-          location: `${s.prepRoomName?.split(' ')[0] || '검토실'} ➔ ${evalRoomName.split(' ')[0]} 이동`,
-          activity: `과제숙지 후 대기 및 ${evalRoomName.split(' ')[0]} 입실 (10분)`,
+          location: `${evalRoomName.split(' ')[0]} 입실 전 대기석`,
+          activity: `역량평가 대기 (10분)`,
           exerciseName: s.exerciseName,
           exerciseCode: s.exerciseCode,
           color: 'amber',
@@ -265,14 +352,14 @@ export function generateSchedule(
         type: 'EVAL',
       });
 
-      // 4. Video Watching in videoRoomName
+      // 4. Video Watching in videoRoomName (starts 10m after eval until last candidate finishes)
       if (s.videoStartTime && s.videoEndTime) {
         items.push({
           day: s.day,
           date: s.date,
           timeStr: `${s.videoStartTime} ~ ${s.videoEndTime}`,
           location: videoRoomName,
-          activity: `${videoRoomName.split(' ')[0]} 이동 ➔ 실습영상 시청 및 피드백`,
+          activity: `${videoRoomName.split(' ')[0]} 이동 ➔ 실습영상 시청 및 피드백 (마지막 실습 종료까지)`,
           exerciseName: s.exerciseName,
           exerciseCode: s.exerciseCode,
           color: 'purple',

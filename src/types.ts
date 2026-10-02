@@ -55,7 +55,7 @@ export interface GeneralConfig {
   hasLunch: boolean;
   lunchStartTime: string; // "12:00"
   lunchDurationMinutes: number; // 60
-  transitMinutes: number; // 과제숙지 후 실습실 이동/대기 시간 (기본 10분)
+  transitMinutes: number; // IB 서류함기법 실습 전 역량평가 대기 시간 (기본 10분, PT/RP는 0분)
   interCandidateBreakMinutes: number; // 교육생 평가실습 종료 후 다음 교육생 실습 시작까지 간격 (기본 10분)
   candidatePrepRooms: Record<number, string>; // 교육생 번호별 과제검토실
 }
@@ -95,7 +95,7 @@ export interface CandidateTimelineItem {
   date?: string; // YYYY-MM-DD
   timeStr: string; // "09:00 ~ 09:30"
   location: string; // "455강의실", "456강의실", "457강의실", "458강의실", "459강의실"
-  activity: string; // "과제검토", "과제숙지 후 이동/대기", "역량평가 실습", "실습영상 시청"
+  activity: string; // "과제검토", "역량평가 대기", "역량평가 실습", "실습영상 시청"
   exerciseName: string;
   exerciseCode: string;
   color: string;

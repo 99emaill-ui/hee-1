@@ -607,7 +607,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                         />
                       </div>
                       <span className="text-[10px] text-slate-400 block">
-                        검토 30분 ➔ 대기 10분 ➔ 실습 20분
+                        검토 30분 ➔ 실습 20분 (대기 없음)
                       </span>
                     </div>
 
@@ -634,7 +634,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                         />
                       </div>
                       <span className="text-[10px] text-slate-400 block">
-                        검토 30분 ➔ 대기 10분 ➔ 실습 30분
+                        검토 30분 ➔ 실습 20분 (대기 없음)
                       </span>
                     </div>
 
@@ -661,7 +661,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                         />
                       </div>
                       <span className="text-[10px] text-slate-400 block">
-                        검토 50분 ➔ 대기 10분 ➔ 실습 20분
+                        검토 50분 ➔ 역량평가 대기 10분 ➔ 실습 20분
                       </span>
                     </div>
                   </div>
@@ -680,12 +680,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-amber-600" />
-                      과제숙지 후 실습실 이동·대기
+                      역량평가 대기 시간 (IB 전용)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        min="5"
+                        min="0"
                         max="30"
                         step="5"
                         value={config.transitMinutes}
@@ -700,7 +700,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                       <span className="text-xs font-bold text-slate-700">분 대기</span>
                     </div>
                     <span className="text-[11px] text-slate-400 mt-1 block">
-                      과제검토 종료 후 실습실 이동 및 대기 (10분)
+                      IB 서류함기법 실습 전 역량평가 대기 (10분, PT·RP는 대기 없음)
                     </span>
                   </div>
 
@@ -869,8 +869,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     </span>
                     <span className="text-emerald-800">
                       <strong>PT</strong>: 과제검토 30분 / 평가실습 <strong>20분</strong> |{' '}
-                      <strong>RP</strong>: 과제검토 30분 / 평가실습 <strong>30분</strong> |{' '}
-                      <strong>IB</strong>: 과제검토 50분 / 평가실습 <strong>20분</strong>
+                      <strong>RP</strong>: 과제검토 30분 / 평가실습 <strong>20분</strong> |{' '}
+                      <strong>IB</strong>: 과제검토 50분 / 역량평가 대기 10분 / 평가실습 <strong>20분</strong>
                     </span>
                   </div>
                   <button
@@ -881,7 +881,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                           return { ...e, prepMinutes: 30, evalMinutes: 20, day: 1, sessionPeriod: 'AM' as const, customEvalStartTime: '10:00', enabled: true };
                         }
                         if (e.code === 'RP' || e.name.includes('역할') || e.name.includes('RP')) {
-                          return { ...e, prepMinutes: 30, evalMinutes: 30, day: 1, sessionPeriod: 'PM' as const, customEvalStartTime: '14:30', enabled: true };
+                          return { ...e, prepMinutes: 30, evalMinutes: 20, day: 1, sessionPeriod: 'PM' as const, customEvalStartTime: '14:30', enabled: true };
                         }
                         if (e.code === 'IB' || e.name.includes('서류함') || e.name.includes('IB')) {
                           return { ...e, prepMinutes: 50, evalMinutes: 20, day: 2, sessionPeriod: 'AM' as const, customEvalStartTime: '09:30', enabled: true };

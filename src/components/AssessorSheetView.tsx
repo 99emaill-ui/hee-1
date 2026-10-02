@@ -160,7 +160,7 @@ export const AssessorSheetView: React.FC<AssessorSheetViewProps> = ({
                                   </span>
                                 </div>
                                 <span className="text-[11px] text-slate-300">
-                                  1번 실습: {s.evalStartTime} 시작 / 4명 연속 실시 (실습종료 10분후 다음실습)
+                                  첫 실습: {s.evalStartTime} 시작 / 연속 실시 (실습종료 10분 후 다음실습)
                                 </span>
                               </div>
                             </td>

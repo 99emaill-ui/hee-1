@@ -28,13 +28,13 @@ export function exportToExcel(
     ['실습실', '455강의실 (역량평가 본 실습실)', '영상시청실', '456강의실 (실습영상 시청)'],
     ['검토실', '455실(1번), 457실(2번), 458실(3번), 459실(4번) (실습종료 10분후 다음실습)'],
     [],
-    ['일차/구분', '순번', '과제검토 (시간 및 검토실)', '과제숙지 후 대기 (10분)', '역량평가 실습 (455실)', '실습영상 시청 (456실)', '과목', '수험번호', '피평가자 성명', '소속/직급', '평가위원'],
+    ['일차/구분', '순번', '과제검토 (시간 및 검토실)', '역량평가 대기 (10분)', '역량평가 실습 (455실)', '실습영상 시청 (456실)', '과목', '수험번호', '피평가자 성명', '소속/직급', '평가위원'],
   ];
 
   schedule.slots.forEach((s) => {
     const room = rooms.find((r) => r.id === s.roomId);
     const prepStr = s.prepStartTime ? `[${s.prepRoomName || '검토실'}] ${s.prepStartTime}~${s.prepEndTime}` : '-';
-    const transitStr = s.transitStartTime ? `${s.transitStartTime}~${s.transitEndTime} (10분)` : '-';
+    const transitStr = s.transitStartTime ? `${s.transitStartTime}~${s.transitEndTime} (10분)` : '- (대기 없음)';
     const evalStr = `${s.evalStartTime} ~ ${s.evalEndTime}`;
     const videoStr = s.videoStartTime ? `[456실] ${s.videoStartTime}~${s.videoEndTime}` : '-';
 
@@ -78,7 +78,7 @@ export function exportToExcel(
         cs.candidate.name,
         cs.candidate.department || '-',
         item.timeStr,
-        item.type === 'PREP' ? '과제검토' : item.type === 'TRANSIT' ? '이동대기' : item.type === 'EVAL' ? '본실습' : item.type === 'VIDEO' ? '영상시청' : item.type === 'LUNCH' ? '중식' : '진행',
+        item.type === 'PREP' ? '과제검토' : item.type === 'TRANSIT' ? '역량평가 대기' : item.type === 'EVAL' ? '본실습' : item.type === 'VIDEO' ? '영상시청' : item.type === 'LUNCH' ? '중식' : '진행',
         item.location,
         `${item.exerciseName} (${item.activity})`,
       ]);
@@ -93,7 +93,7 @@ export function exportToExcel(
     ['5개 강의실 및 평가위원 배정 현황'],
     [],
     ['강의실명', '운영 역할', '평가위원/진행요원', '비고'],
-    ['455강의실', '1번 교육생 과제검토실 ➔ 과제검토 후 역량평가 본 실습실 전환', '수석평가위원 2인, 롤플레이어 1인', 'PT(20분)/RP(30분)/IB(20분) 실습 및 평정'],
+    ['455강의실', '1번 교육생 과제검토실 ➔ 과제검토 후 역량평가 본 실습실 전환', '수석평가위원 2인, 롤플레이어 1인', 'PT(20분)/RP(20분)/IB(20분) 실습 및 평정'],
     ['456강의실', '실습영상 시청실 (모든 교육생 실습 종료 후 이동)', '진행요원 (영상 지원)', '실습 녹화영상 시청 및 자가 피드백'],
     ['457강의실', '2번 교육생 전용 과제검토실', '진행요원', '시차 과제검토 10분 후 455실로 이동'],
     ['458강의실', '3번 교육생 전용 과제검토실', '진행요원', '시차 과제검토 10분 후 455실로 이동'],
@@ -115,7 +115,7 @@ export function exportToCsv(
 ) {
   const dateStr = config.startDate === config.endDate ? config.startDate : `${config.startDate}~${config.endDate}`;
   let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility in Korea
-  csvContent += '일차/구분,순번,과제검토,이동대기(10분),역량평가실습(455실),실습영상시청(456실),과목,실습실,수험번호,피평가자명\n';
+  csvContent += '일차/구분,순번,과제검토,역량평가대기(10분),역량평가실습(455실),실습영상시청(456실),과목,실습실,수험번호,피평가자명\n';
 
   schedule.slots.forEach((s) => {
     const prepStr = s.prepStartTime ? `[${s.prepRoomName || '검토실'}] ${s.prepStartTime}~${s.prepEndTime}` : '-';
@@ -219,7 +219,7 @@ export function exportToStandaloneHtml(
               <th class="p-3">일차/구분</th>
               <th class="p-3">순번</th>
               <th class="p-3">과제검토 (분산 강의실)</th>
-              <th class="p-3">과제숙지 후 대기</th>
+              <th class="p-3">역량평가 대기 (IB 10분)</th>
               <th class="p-3">역량평가 실습 (455실)</th>
               <th class="p-3">실습영상 시청 (456실)</th>
               <th class="p-3">과목</th>
@@ -239,15 +239,19 @@ export function exportToStandaloneHtml(
                     <div class="font-mono text-slate-700 text-xs">${s.prepStartTime} ~ ${s.prepEndTime}</div>
                   </td>
                   <td class="p-3 text-amber-800 font-mono text-xs font-bold">
-                    ${s.transitStartTime} ~ ${s.transitEndTime} (10분)
+                    ${s.transitStartTime && s.transitEndTime ? `${s.transitStartTime} ~ ${s.transitEndTime} (10분)` : '- (대기 없음)'}
                   </td>
                   <td class="p-3">
                     <div class="font-bold text-emerald-800">${s.evalStartTime} ~ ${s.evalEndTime}</div>
                     <div class="text-[11px] text-slate-500">${s.roomName}</div>
                   </td>
                   <td class="p-3">
-                    <div class="font-bold text-purple-800">${s.videoStartTime} ~ ${s.videoEndTime}</div>
-                    <div class="text-[11px] text-purple-600 font-medium">${s.videoRoomName || '456강의실'}</div>
+                    ${s.videoStartTime && s.videoEndTime ? `
+                      <div class="font-bold text-purple-800">${s.videoStartTime} ~ ${s.videoEndTime}</div>
+                      <div class="text-[11px] text-purple-600 font-medium">${s.videoRoomName || '456강의실'}</div>
+                    ` : `
+                      <div class="text-xs text-slate-400 font-medium">- (시청 없음)</div>
+                    `}
                   </td>
                   <td class="p-3 font-medium text-slate-800">${s.exerciseName}</td>
                   <td class="p-3 font-mono font-bold text-red-700">${s.candidateCodes.join(', ')}</td>

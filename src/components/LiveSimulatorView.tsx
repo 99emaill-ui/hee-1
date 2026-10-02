@@ -148,6 +148,14 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
     return currentMinutes >= vS && currentMinutes < vE;
   });
 
+  // 3-B. Who is in 역량평가 대기 right now (IB 전용 10분 대기)?
+  const transitWaitingSlots = daySlots.filter((s) => {
+    if (!s.transitStartTime || !s.transitEndTime) return false;
+    const tS = parseMinutes(s.transitStartTime);
+    const tE = parseMinutes(s.transitEndTime);
+    return currentMinutes >= tS && currentMinutes < tE;
+  });
+
   // 4. Who is busy right now?
   const busyCandidateIds = new Set<string>();
   roomStatus.forEach((rs) => {
@@ -157,6 +165,9 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
   });
   preparingSlots.forEach((ps) => {
     ps.candidateIds.forEach((id) => busyCandidateIds.add(id));
+  });
+  transitWaitingSlots.forEach((ts) => {
+    ts.candidateIds.forEach((id) => busyCandidateIds.add(id));
   });
   videoWatchingSlots.forEach((vs) => {
     vs.candidateIds.forEach((id) => busyCandidateIds.add(id));
@@ -427,7 +438,10 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
                     과목: <strong>{ps.exerciseName}</strong> (과제검토 진행 중)
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
-                    검토시간: {ps.prepStartTime} ~ {ps.prepEndTime} ➔ 10분 대기 후 455실습실 입실
+                    검토시간: {ps.prepStartTime} ~ {ps.prepEndTime} ➔{' '}
+                    {ps.exerciseCode === 'IB'
+                      ? '10분 역량평가 대기 후 실습실 입실'
+                      : '검토 직후 본 실습실 입실 (대기 없음)'}
                   </div>
                 </div>
               ))}
@@ -435,6 +449,55 @@ export const LiveSimulatorView: React.FC<LiveSimulatorViewProps> = ({
           ) : (
             <div className="text-xs text-slate-400 py-3 text-center">
               준비 중인 수험생이 없습니다.
+            </div>
+          )}
+        </div>
+
+        {/* IB Transit / Waiting Status (역량평가 대기석) */}
+        <div
+          className={`border rounded-xl p-4 shadow-2xs transition-all ${
+            transitWaitingSlots.length > 0
+              ? 'border-amber-500 bg-amber-50/50 ring-1 ring-amber-300'
+              : 'border-slate-200 bg-white'
+          }`}
+        >
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200 mb-3">
+            <h4 className="font-bold text-slate-900 text-sm">
+              역량평가 대기석 (455실 앞)
+            </h4>
+            {transitWaitingSlots.length > 0 ? (
+              <span className="text-[11px] font-bold px-2 py-0.5 bg-amber-600 text-white rounded-full">
+                역량평가 대기 중 ({transitWaitingSlots.length}명)
+              </span>
+            ) : (
+              <span className="text-[11px] font-medium px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
+                대기 인원 없음
+              </span>
+            )}
+          </div>
+
+          {transitWaitingSlots.length > 0 ? (
+            <div className="space-y-2">
+              {transitWaitingSlots.map((ts) => (
+                <div
+                  key={ts.id}
+                  className="p-2.5 bg-white border border-amber-300 rounded-lg text-xs"
+                >
+                  <div className="font-bold text-slate-900 flex items-center justify-between">
+                    <span>[{ts.candidateCodes.join(', ')}] {ts.candidateNames.join(', ')}</span>
+                    <span className="text-[10px] text-amber-700 font-bold font-mono">
+                      {ts.transitStartTime} ~ {ts.transitEndTime} (10분)
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-amber-900 mt-1 font-semibold">
+                    {ts.exerciseName} 본 실습 입실 대기 중 (10분 후 실습실 입실)
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 py-3 text-center">
+              현재 역량평가 대기 중인 교육생이 없습니다.
             </div>
           )}
         </div>

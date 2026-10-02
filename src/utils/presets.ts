@@ -30,7 +30,7 @@ export const PRESETS: PresetConfig[] = [
       cohortName: '제1기',
       startDate: todayStr,
       endDate: tomorrowStr,
-      startTime: '09:20', // 1일차 1번 교육생 첫 과제검토 시작
+      startTime: '09:30', // 1일차 1번 교육생 첫 과제검토 시작 (대기시간 없이 09:30~10:00 검토 후 10:00 실습)
       evalStartTime: '10:00', // 1일차 PT 실습 시작 기준
       day1PtStartTime: '10:00', // 1일차 오전 PT 1번 실습 시작
       day1RpStartTime: '14:30', // 1일차 오후 RP 1번 실습 시작
@@ -44,7 +44,7 @@ export const PRESETS: PresetConfig[] = [
       hasLunch: true,
       lunchStartTime: '12:30',
       lunchDurationMinutes: 60,
-      transitMinutes: 10, // 과제숙지 후 10분 뒤 실습실 입실
+      transitMinutes: 10, // IB만 10분 적용, PT/RP는 0분
       interCandidateBreakMinutes: 10, // 교육생 실습 종료 10분 후 다음 교육생 실습 시작
       candidatePrepRooms: {
         1: '455강의실 (1번 검토실 ➔ 이후 실습실 전환)',
@@ -77,7 +77,7 @@ export const PRESETS: PresetConfig[] = [
         sessionPeriod: 'PM',
         customEvalStartTime: '14:30',
         prepMinutes: 30, // RP 과제검토 30분
-        evalMinutes: 30, // RP 평가실습 30분
+        evalMinutes: 20, // RP 평가실습 20분 (개정)
         gradeMinutes: 10,
         color: 'rose',
         enabled: true,
@@ -192,7 +192,7 @@ export const PRESETS: PresetConfig[] = [
         sessionPeriod: 'PM',
         customEvalStartTime: '14:30',
         prepMinutes: 30,
-        evalMinutes: 30,
+        evalMinutes: 20,
         gradeMinutes: 10,
         color: 'rose',
         enabled: true,

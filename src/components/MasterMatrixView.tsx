@@ -119,7 +119,7 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
               <th className="p-3 w-24 text-center">일차 / 구분</th>
               <th className="p-3 w-14 text-center">순번</th>
               <th className="p-3 w-36">과제검토 (분산 검토실)</th>
-              <th className="p-3 w-32 text-amber-800 bg-amber-50/50">과제숙지 대기</th>
+              <th className="p-3 w-36 text-amber-800 bg-amber-50/50">역량평가 대기 (IB 10분)</th>
               <th className="p-3 w-40 text-red-900 bg-red-50/50">역량평가 실습 (455실)</th>
               <th className="p-3 w-40 text-purple-900 bg-purple-50/50">실습영상 시청 (456실)</th>
               <th className="p-3 w-28">평가과목</th>
@@ -157,11 +157,13 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
                                 {s.exerciseName}
                               </span>
                               <span className="text-slate-300 text-xs font-normal">
-                                (1번 실습 시작: {s.evalStartTime} / 4명 연속 실시, 실습종료 10분후 다음실습)
+                                (첫 실습: {s.evalStartTime} / 연속 실시, 실습종료 10분 후 다음실습)
                               </span>
                             </div>
                             <span className="text-[11px] text-slate-400">
-                              과제검토 {s.prepStartTime ? '30~50분' : '-'} ➔ 대기 10분 ➔ 실습 ➔ 456실 영상시청
+                              {s.exerciseCode === 'IB'
+                                ? '과제검토 50분 ➔ 역량평가 대기 10분 ➔ 본실습 20분 ➔ 실습 10분 후 영상시청'
+                                : '과제검토 30분 ➔ 본실습 20분 (대기 없음) ➔ 실습 10분 후 영상시청'}
                             </span>
                           </div>
                         </td>
@@ -215,12 +217,12 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
                             <div className="font-mono font-bold text-amber-900">
                               {s.transitStartTime} ~ {s.transitEndTime}
                             </div>
-                            <span className="inline-block mt-0.5 text-[10px] font-semibold text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded">
-                              이동·대기 10분
+                            <span className="inline-block mt-0.5 text-[10px] font-semibold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded border border-amber-200">
+                              역량평가 대기 (10분)
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-xs">-</span>
+                          <span className="text-slate-400 text-xs font-medium">- (대기 없음)</span>
                         )}
                       </td>
 
@@ -254,7 +256,7 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-xs">-</span>
+                          <span className="text-slate-400 text-xs font-medium">- (시청 없음 / 마지막 실습자)</span>
                         )}
                       </td>
 
